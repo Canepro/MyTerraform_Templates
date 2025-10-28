@@ -1,0 +1,25 @@
+# Example Terraform variables for the sandbox stack
+# Copy this file to terraform.tfvars and customize as needed
+
+# Resource naming
+prefix      = "myapp"
+environment = "sandbox"
+suffix      = ""  # Optional: add "001", "east", etc. for multiple deployments
+
+# Azure region (choose cost-effective region close to you)
+location = "eastus"
+
+# Cost tracking
+cost_center = "engineering"
+
+# Additional custom tags (optional)
+custom_tags = {
+  project = "terraform-templates"
+  owner   = "platform-team"
+}
+
+# Network configuration (optional, defaults provided)
+# vnet_address_space    = ["10.0.0.0/16"]
+# subnet_default_prefix = "10.0.1.0/24"
+# subnet_app_prefix     = "10.0.2.0/24"
+

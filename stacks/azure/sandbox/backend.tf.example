@@ -1,0 +1,58 @@
+# Remote State Backend Configuration
+# 
+# This example shows how to configure Azure Storage as the Terraform backend
+# for storing remote state files. This is recommended for team collaboration.
+#
+# Prerequisites:
+# 1. Create an Azure Storage Account for Terraform state
+# 2. Create a container within the storage account
+# 3. Copy this file to backend.tf and customize the values
+#
+# IMPORTANT: Do NOT commit backend.tf with sensitive values to version control
+# Add backend.tf to .gitignore if it contains credentials
+
+terraform {
+  backend "azurerm" {
+    # Storage account for Terraform state
+    resource_group_name  = "rg-terraform-state"
+    storage_account_name = "sttfstatesandbox"  # Must be globally unique
+    container_name       = "tfstate"
+    key                  = "sandbox/terraform.tfstate"
+
+    # Authentication options:
+    
+    # Option 1: Use Azure CLI authentication (recommended for local development)
+    # Run: az login
+    # No additional configuration needed
+    
+    # Option 2: Use Managed Identity (recommended for CI/CD)
+    # use_msi = true
+    
+    # Option 3: Use SAS token
+    # sas_token = "?sv=2021-06-08&ss=..."  # Don't commit this!
+    
+    # Option 4: Use access key (least secure)
+    # access_key = "xxxxx"  # Don't commit this!
+  }
+}
+
+# To initialize with this backend:
+# 1. Copy this file to backend.tf
+# 2. Update the values above
+# 3. Run: terraform init -backend-config="backend.tf"
+
+# To create the backend storage account (one-time setup):
+# 
+# az group create --name rg-terraform-state --location eastus
+# 
+# az storage account create \
+#   --name sttfstatesandbox \
+#   --resource-group rg-terraform-state \
+#   --location eastus \
+#   --sku Standard_LRS \
+#   --encryption-services blob
+# 
+# az storage container create \
+#   --name tfstate \
+#   --account-name sttfstatesandbox
+
