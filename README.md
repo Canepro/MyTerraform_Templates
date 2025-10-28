@@ -83,8 +83,11 @@ MyTerraform_Templates/
 | [resource-group](modules/azure/resource-group/) | Azure Resource Groups | ✅ Always Free |
 | [storage-account](modules/azure/storage-account/) | Storage Accounts with safe defaults | ⚠️ Free tier (5GB) |
 | [virtual-network](modules/azure/virtual-network/) | VNets with subnets and service endpoints | ✅ Always Free |
+| [key-vault](modules/azure/key-vault/) | Key Vault with RBAC authorization | ⚠️ Free tier (10K ops) |
+| [virtual-machine](modules/azure/virtual-machine/) | Linux VMs with SSH and auto-shutdown | ⚠️ ~$9/month (B1s) |
+| [aks-cluster](modules/azure/aks-cluster/) | Kubernetes cluster with Azure CNI | ⚠️⚠️ ~$73/month |
 
-**Coming Soon**: Key Vault, AKS, Virtual Machines, App Service, and more!
+**Coming Soon**: App Service (F1 free), Container Apps, and more!
 
 ### AWS Modules
 
