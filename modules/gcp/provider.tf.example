@@ -1,0 +1,32 @@
+# GCP Provider Configuration Example  
+# Copy this file to your stack directory and customize
+
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "google" {
+  project = "my-project-id"  # Your GCP project ID
+  region  = "us-central1"    # Your preferred region
+  
+  # Authentication options:
+  
+  # Option 1: Use gcloud CLI (recommended for local development)
+  # Run: gcloud auth application-default login
+  # No additional configuration needed
+  
+  # Option 2: Use service account key file
+  # credentials = file("path/to/service-account-key.json")
+  
+  # Option 3: Use environment variable
+  # export GOOGLE_CREDENTIALS=$(cat path/to/key.json)
+  
+  # Option 4: Use GCE/GKE metadata (recommended for compute instances)
+  # No configuration needed, uses instance service account
+}
+

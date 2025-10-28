@@ -86,16 +86,24 @@ MyTerraform_Templates/
 | [key-vault](modules/azure/key-vault/) | Key Vault with RBAC authorization | ⚠️ Free tier (10K ops) |
 | [virtual-machine](modules/azure/virtual-machine/) | Linux VMs with SSH and auto-shutdown | ⚠️ ~$9/month (B1s) |
 | [aks-cluster](modules/azure/aks-cluster/) | Kubernetes cluster with Azure CNI | ⚠️⚠️ ~$73/month |
-
-**Coming Soon**: App Service (F1 free), Container Apps, and more!
+| [app-service](modules/azure/app-service/) | Linux App Service with F1 free tier | ✅ Free tier (10 apps) |
+| [container-apps](modules/azure/container-apps/) | Serverless containers with scale-to-zero | ✅ Free tier (180K vCPU-s) |
 
 ### AWS Modules
 
-*Coming soon* - Placeholders ready for contribution
+| Module | Description | Cost |
+|--------|-------------|------|
+| [s3-bucket](modules/aws/s3-bucket/) | S3 bucket with encryption and versioning | ⚠️ Free tier (5GB) |
+| [vpc](modules/aws/vpc/) | VPC with public/private subnets | ✅ Always Free |
+| [iam-user](modules/aws/iam-user/) | IAM user with policy attachments | ✅ Always Free |
 
 ### GCP Modules
 
-*Coming soon* - Placeholders ready for contribution
+| Module | Description | Cost |
+|--------|-------------|------|
+| [storage-bucket](modules/gcp/storage-bucket/) | Cloud Storage bucket | ⚠️ Free tier (5GB) |
+| [vpc](modules/gcp/vpc/) | VPC with custom subnets | ✅ Always Free |
+| [service-account](modules/gcp/service-account/) | Service account with IAM roles | ✅ Always Free |
 
 ## Example Stacks
 
