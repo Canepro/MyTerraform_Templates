@@ -20,27 +20,29 @@ Total: $0.00 (within free tier limits) ✅
 ### t3.micro (Default)
 ```
 Instance:            $0.0104/hour = ~$7.59/month
-EBS gp3 (8GB):       $0.08/GB/month = ~$0.64/month
+EBS gp3 (30GB):      $0.08/GB/month = ~$2.40/month
 Data Transfer:       $0.09/GB (first 10TB)
 ────────────────────────────────────────
-Total: ~$8.23/month ⚠️
+Total: ~$9.99/month ⚠️
 ```
 
 ### t4g.nano (Cheapest ARM)
 ```
 Instance:            $0.0042/hour = ~$3.07/month
-EBS gp3 (8GB):       $0.08/GB/month = ~$0.64/month
+EBS gp3 (30GB):      $0.08/GB/month = ~$2.40/month
 ────────────────────────────────────────
-Total: ~$3.71/month ⚠️
+Total: ~$5.47/month ⚠️
 ```
 
 ### t2.micro (Free Tier Eligible)
 ```
 Instance:            $0.0116/hour = ~$8.47/month
-EBS gp2 (8GB):       $0.10/GB/month = ~$0.80/month
+EBS gp2 (30GB):      $0.10/GB/month = ~$3.00/month
 ────────────────────────────────────────
-Total: ~$9.27/month ⚠️
+Total: ~$11.47/month ⚠️
 ```
+
+**Note**: Amazon Linux 2023 requires minimum 30GB root volume (included in AWS free tier).
 
 ## Cost Optimization
 

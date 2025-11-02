@@ -15,12 +15,14 @@ Deploy EC2 instances for:
 
 **Pay-as-you-go** ⚠️
 
-- **t2.micro**: ~$9/month (750 hours FREE in first 12 months) ✅
-- **t3.micro**: ~$8/month (default)
-- **t4g.nano**: ~$4/month (ARM-based, cheapest)
-- **EBS Storage**: ~$0.64/month for 8GB gp3
+- **t2.micro**: ~$11/month (750 hours FREE in first 12 months) ✅
+- **t3.micro**: ~$10/month (default)
+- **t4g.nano**: ~$5/month (ARM-based, cheapest)
+- **EBS Storage**: ~$2.40/month for 30GB gp3 (Amazon Linux 2023 minimum)
 
-**Total minimum**: ~$9/month for always-on t2.micro (after free tier)
+**Total minimum**: ~$11/month for always-on t2.micro (after free tier)
+
+**Free Tier**: 750 hours of t2.micro + 30GB EBS storage per month ✅
 
 See [COST.md](./COST.md) for detailed cost information and savings strategies.
 
@@ -211,13 +213,13 @@ output "ssh_command" {
 module "free_tier_instance" {
   source = "../../modules/aws/ec2-instance"
 
-  name          = "free-tier-server"
-  ami_id        = "ami-0c55b159cbfafe1f0"  # Amazon Linux 2023
-  instance_type = "t2.micro"               # Free tier eligible
-  subnet_id     = "subnet-12345678"
+  name           = "free-tier-server"
+  use_latest_ami = true  # Auto-detect latest Amazon Linux 2023
+  instance_type  = "t2.micro"  # Free tier eligible
+  subnet_id      = "subnet-12345678"
   
-  # Minimum storage (free tier: 30GB)
-  root_volume_size = 8
+  # Default 30GB is free tier limit
+  # root_volume_size = 30  # Default, no need to specify
   
   tags = {
     environment = "sandbox"
@@ -257,7 +259,7 @@ module "arm_instance" {
 | security_group_ids | List of security group IDs | list(string) | `[]` | no |
 | key_name | Name of the SSH key pair | string | `null` | no |
 | root_volume_type | Root volume type | string | `"gp3"` | no |
-| root_volume_size | Root volume size in GB | number | `8` | no |
+| root_volume_size | Root volume size in GB (min 30GB for Amazon Linux 2023) | number | `30` | no |
 | enable_detailed_monitoring | Enable detailed CloudWatch monitoring | bool | `false` | no |
 | user_data | User data script to run on launch | string | `null` | no |
 | iam_instance_profile | IAM instance profile name | string | `null` | no |
@@ -269,7 +271,7 @@ module "arm_instance" {
 - **name**: 1-255 characters
 - **ami_id**: Must match format `ami-xxxxxxxxx`
 - **root_volume_type**: Must be one of: `gp2`, `gp3`, `io1`, `io2`, `st1`, `sc1`
-- **root_volume_size**: 8-16384 GB
+- **root_volume_size**: 30-16384 GB
 
 ## Outputs
 
@@ -363,6 +365,6 @@ See the `examples/` directory for complete working configurations:
 
 ---
 
-**Cost**: ~$8/month (t3.micro) ⚠️ | **Free Tier**: t2.micro eligible ✅  
+**Cost**: ~$10/month (t3.micro) ⚠️ | **Free Tier**: t2.micro + 30GB storage eligible ✅  
 **Last Updated**: 2025-11-02 | **Maintained by**: [@Canepro](https://github.com/Canepro)
 

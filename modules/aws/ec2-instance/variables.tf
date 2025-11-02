@@ -60,13 +60,13 @@ variable "root_volume_type" {
 }
 
 variable "root_volume_size" {
-  description = "Root volume size in GB"
+  description = "Root volume size in GB (Amazon Linux 2023 requires minimum 30GB)"
   type        = number
-  default     = 8
+  default     = 30
 
   validation {
-    condition     = var.root_volume_size >= 8 && var.root_volume_size <= 16384
-    error_message = "Root volume size must be between 8 and 16384 GB"
+    condition     = var.root_volume_size >= 30 && var.root_volume_size <= 16384
+    error_message = "Root volume size must be between 30 and 16384 GB"
   }
 }
 

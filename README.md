@@ -2,6 +2,17 @@
 
 A collection of reusable, cost-conscious Terraform modules and example stacks for Azure, AWS, and GCP, with an Azure-first focus.
 
+## 🚀 New to Terraform? Start Here!
+
+**Never used Terraform or cloud infrastructure?** Follow these guides:
+
+- 📖 **[Getting Started Guide for Absolute Beginners](docs/GETTING_STARTED.md)** - Your first 10 minutes with Terraform
+- 🎓 **[Complete Tutorials Collection](docs/TUTORIALS.md)** - Step-by-step learning paths
+- 🌍 **[AWS Setup Guide](docs/aws-setup-guide.md)** - Complete AWS account setup and deployment
+- ☁️ **[GCP Setup Guide](docs/gcp-setup-guide.md)** - Complete GCP account setup and deployment
+
+**Already know Terraform?** Jump to [Quick Start](#quick-start) below.
+
 ## Overview
 
 This repository provides:
@@ -10,6 +21,7 @@ This repository provides:
 - **Cost Transparency**: Every module includes cost information (✅ free, ⚠️ paid)
 - **Security Defaults**: Secure configurations out-of-the-box
 - **CI/CD Integration**: GitHub Actions workflows for validation and deployment
+- **Beginner-Friendly**: Complete guides and tutorials for absolute beginners
 
 **Primary Focus**: Azure (with AWS and GCP support for multi-cloud scenarios)
 
@@ -97,10 +109,24 @@ terraform apply
 
 ### Need Help?
 
-- **Azure**: See [Sandbox Stack README](stacks/azure/sandbox/README.md)
-- **AWS**: See [AWS Setup Guide](docs/aws-setup-guide.md)
-- **GCP**: See [GCP Setup Guide](docs/gcp-setup-guide.md)
-- **General**: Review [Module Guidelines](docs/module-guidelines.md)
+**New to Terraform?**
+- 📖 [Getting Started Guide](docs/GETTING_STARTED.md) - Complete beginner tutorial
+- 🎓 [Tutorials Collection](docs/TUTORIALS.md) - Step-by-step learning paths
+
+**Platform-Specific Help**
+- **Azure**: [Sandbox Stack README](stacks/azure/sandbox/README.md) | [Account Setup Guide](docs/GETTING_STARTED.md#azure-beginner-guide-recommended)
+- **AWS**: [AWS Setup Guide](docs/aws-setup-guide.md) | [Account Setup Guide](docs/GETTING_STARTED.md#aws-beginner-guide)
+- **GCP**: [GCP Setup Guide](docs/gcp-setup-guide.md) | [Account Setup Guide](docs/GETTING_STARTED.md#gcp-beginner-guide)
+
+**For Developers**
+- 📘 [Module Guidelines](docs/module-guidelines.md) - Create new modules
+- 📗 [Stack Guidelines](docs/stack-guidelines.md) - Build deployments
+- 🤝 [Contributing Guide](docs/contributing.md) - Contribute to the project
+
+**Get Help**
+- 💬 [Ask a Question](../../discussions) - Community help
+- 🐛 [Report a Bug](../../issues/new) - Found an issue?
+- 💡 [Request a Feature](../../issues/new) - Suggest improvements
 
 ## Repository Structure
 
@@ -118,11 +144,13 @@ MyTerraform_Templates/
 │   ├── aws/                    # AWS stacks (coming soon)
 │   └── gcp/                    # GCP stacks (coming soon)
 ├── docs/                        # Documentation and guidelines
+│   ├── GETTING_STARTED.md      # 📖 Beginner's first deployment guide 🆕
+│   ├── TUTORIALS.md            # 🎓 Complete tutorials collection 🆕
+│   ├── aws-setup-guide.md      # Complete AWS account & deployment guide
+│   ├── gcp-setup-guide.md      # Complete GCP account & deployment guide
 │   ├── module-guidelines.md    # Standards for creating modules
 │   ├── stack-guidelines.md     # Standards for creating stacks
-│   ├── contributing.md         # Contribution guidelines
-│   ├── aws-setup-guide.md      # Complete AWS account & deployment guide 🆕
-│   └── gcp-setup-guide.md      # Complete GCP account & deployment guide 🆕
+│   └── contributing.md         # Contribution guidelines
 └── README.md                    # This file
 ```
 
@@ -324,6 +352,42 @@ AZURE_CREDENTIALS='{"clientId":"...","clientSecret":"...","subscriptionId":"..."
 - Code review criteria
 - Documentation standards
 - First-time contributor suggestions
+
+## 🗺️ Learning Path for Beginners
+
+**New to Terraform and cloud infrastructure?** Follow this roadmap:
+
+### Week 1: Foundation ⭐
+- [ ] Complete [Getting Started Guide](docs/GETTING_STARTED.md)
+- [ ] Deploy the Azure sandbox successfully
+- [ ] Understand what `terraform init`, `plan`, `apply`, `destroy` do
+- [ ] Deploy and destroy 5 times to get comfortable
+
+### Week 2: Core Concepts ⭐⭐
+- [ ] Work through [Tutorials](docs/TUTORIALS.md)
+- [ ] Deploy individual modules (Resource Group, Storage Account, VNet)
+- [ ] Learn to read and modify Terraform configuration
+- [ ] Practice troubleshooting common errors
+
+### Week 3: Real Projects ⭐⭐⭐
+- [ ] Deploy a virtual machine
+- [ ] Set up SSH access to your VM
+- [ ] Deploy a complete VPC with public and private subnets
+- [ ] Create your first custom module
+
+### Week 4: Best Practices ⭐⭐⭐⭐
+- [ ] Set up remote state backend
+- [ ] Configure different environments (dev/prod)
+- [ ] Learn about state management
+- [ ] Set up basic CI/CD
+
+### Month 2: Advanced Topics 🚀
+- [ ] Multi-cloud deployments (Azure + AWS)
+- [ ] Security hardening
+- [ ] Cost optimization strategies
+- [ ] Certification prep (AZ-104, SAA-C03, PCA)
+
+**Need help at any step?** Check [Tutorials](docs/TUTORIALS.md) or [Ask for Help](../../discussions).
 
 ## Development Workflow
 
