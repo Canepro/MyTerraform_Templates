@@ -18,14 +18,21 @@ This repository provides:
 ### Prerequisites
 
 - [Terraform](https://www.terraform.io/downloads) >= 1.5.0
-- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) (for Azure resources)
-- Azure subscription with appropriate permissions
+- Cloud provider CLI installed:
+  - **Azure**: [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+  - **AWS**: [AWS CLI](https://aws.amazon.com/cli/)
+  - **GCP**: [Google Cloud SDK](https://cloud.google.com/sdk)
+- Cloud account with appropriate permissions
 
-### Deploy the Sandbox Stack
+### Choose Your Platform
+
+#### 🎯 Azure (Recommended for beginners)
+
+Perfect for new users with a generous free tier:
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/Canepro/MyTerraform_Templates.git
 cd MyTerraform_Templates/stacks/azure/sandbox
 
 # Configure variables
@@ -41,30 +48,82 @@ terraform plan
 terraform apply
 ```
 
-**Estimated Cost**: $0.00/month (within free tier) ✅
+**📚 Complete Setup Guide**: [Azure Setup Instructions](stacks/azure/sandbox/README.md)  
+**💰 Estimated Cost**: $0.00/month (within free tier) ✅
 
-See the [Sandbox Stack README](stacks/azure/sandbox/README.md) for detailed instructions.
+#### 🌍 AWS
+
+For building on the largest cloud ecosystem:
+
+```bash
+# Clone the repository
+git clone https://github.com/Canepro/MyTerraform_Templates.git
+cd MyTerraform_Templates
+
+# Set up AWS credentials
+aws configure
+# Enter your Access Key ID, Secret Access Key, and region
+
+# Create a stack (see examples in modules/aws/)
+terraform init
+terraform plan
+terraform apply
+```
+
+**📚 Complete Setup Guide**: [AWS Setup Instructions](docs/aws-setup-guide.md)  
+**💰 Estimated Cost**: $0.00/month (with free tier) ✅
+
+#### ☁️ Google Cloud Platform
+
+For data analytics and machine learning:
+
+```bash
+# Clone the repository
+git clone https://github.com/Canepro/MyTerraform_Templates.git
+cd MyTerraform_Templates
+
+# Set up GCP authentication
+export GOOGLE_APPLICATION_CREDENTIALS="path/to/credentials.json"
+gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+
+# Create a stack (see examples in modules/gcp/)
+terraform init
+terraform plan
+terraform apply
+```
+
+**📚 Complete Setup Guide**: [GCP Setup Instructions](docs/gcp-setup-guide.md)  
+**💰 Estimated Cost**: $0.00/month (with $300 free credit) ✅
+
+### Need Help?
+
+- **Azure**: See [Sandbox Stack README](stacks/azure/sandbox/README.md)
+- **AWS**: See [AWS Setup Guide](docs/aws-setup-guide.md)
+- **GCP**: See [GCP Setup Guide](docs/gcp-setup-guide.md)
+- **General**: Review [Module Guidelines](docs/module-guidelines.md)
 
 ## Repository Structure
 
 ```
 MyTerraform_Templates/
-├── .github/workflows/      # CI/CD automation (fmt, validate, plan, apply)
-├── modules/                # Reusable Terraform modules
-│   ├── common/            # Shared utilities (naming, tags)
-│   ├── azure/             # Azure-specific modules
-│   ├── aws/               # AWS modules (future)
-│   └── gcp/               # GCP modules (future)
-├── stacks/                # Deployable root configurations
+├── .github/workflows/           # CI/CD automation (fmt, validate, plan, apply)
+├── modules/                     # Reusable Terraform modules
+│   ├── common/                 # Shared utilities (naming, tags)
+│   ├── azure/                  # Azure-specific modules (8 modules)
+│   ├── aws/                    # AWS modules (5+ modules)
+│   └── gcp/                    # GCP modules (3 modules)
+├── stacks/                      # Deployable root configurations
 │   ├── azure/
-│   │   └── sandbox/       # Safe, cost-free sandbox environment
-│   ├── aws/               # AWS stacks (future)
-│   └── gcp/               # GCP stacks (future)
-├── docs/                  # Documentation and guidelines
-│   ├── module-guidelines.md
-│   ├── stack-guidelines.md
-│   └── contributing.md
-└── README.md              # This file
+│   │   └── sandbox/            # Safe, cost-free sandbox environment ✅
+│   ├── aws/                    # AWS stacks (coming soon)
+│   └── gcp/                    # GCP stacks (coming soon)
+├── docs/                        # Documentation and guidelines
+│   ├── module-guidelines.md    # Standards for creating modules
+│   ├── stack-guidelines.md     # Standards for creating stacks
+│   ├── contributing.md         # Contribution guidelines
+│   ├── aws-setup-guide.md      # Complete AWS account & deployment guide 🆕
+│   └── gcp-setup-guide.md      # Complete GCP account & deployment guide 🆕
+└── README.md                    # This file
 ```
 
 ## Available Modules
@@ -91,11 +150,17 @@ MyTerraform_Templates/
 
 ### AWS Modules
 
-| Module | Description | Cost |
-|--------|-------------|------|
-| [s3-bucket](modules/aws/s3-bucket/) | S3 bucket with encryption and versioning | ⚠️ Free tier (5GB) |
-| [vpc](modules/aws/vpc/) | VPC with public/private subnets | ✅ Always Free |
-| [iam-user](modules/aws/iam-user/) | IAM user with policy attachments | ✅ Always Free |
+| Module | Description | Cost | Status |
+|--------|-------------|------|--------|
+| [s3-bucket](modules/aws/s3-bucket/) | S3 bucket with encryption and versioning | ⚠️ Free tier (5GB) | ✅ Ready |
+| [vpc](modules/aws/vpc/) | VPC with public/private subnets | ✅ Always Free | ✅ Ready |
+| [iam-user](modules/aws/iam-user/) | IAM user with policy attachments | ✅ Always Free | ✅ Ready |
+| [ec2-instance](modules/aws/ec2-instance/) | EC2 instances with security defaults | ⚠️ ~$8/month | ✅ Ready |
+| [ecs-cluster](modules/aws/ecs-cluster/) | ECS cluster for containers | Coming Soon | 🚧 Q1 2026 |
+| [eks-cluster](modules/aws/eks-cluster/) | Kubernetes cluster | Coming Soon | 🚧 Q1 2026 |
+| [lambda-function](modules/aws/lambda-function/) | Serverless functions | ⚠️ Free tier (1M requests) | 🚧 Q1 2026 |
+| [rds-instance](modules/aws/rds-instance/) | Managed databases | ⚠️ ~$15/month | 🚧 Q1 2026 |
+| [secrets-manager](modules/aws/secrets-manager/) | Secrets management | ⚠️ ~$0.40/secret | 🚧 Q1 2026 |
 
 ### GCP Modules
 
@@ -328,24 +393,26 @@ git push origin feature/new-module
 ### Current (Q4 2025)
 - [x] Repository structure
 - [x] Common modules (naming, tags)
-- [x] Basic Azure modules (RG, Storage, VNet)
+- [x] Azure modules (RG, Storage, VNet, Key Vault, AKS, VMs, App Service, Container Apps)
+- [x] AWS modules (S3, VPC, IAM User)
+- [x] GCP modules (Storage, VPC, Service Account)
 - [x] Sandbox stack example
 - [x] CI/CD workflows
 - [x] Documentation
 
 ### Next (Q1 2026)
-- [ ] Additional Azure modules (Key Vault, AKS, VMs)
 - [ ] Dev and prod stacks
 - [ ] Cost policy enforcement in CI
 - [ ] Module versioning with Git tags
-- [ ] AWS modules (S3, VPC, EC2)
+- [ ] Additional AWS modules (EC2, RDS, Lambda)
+- [ ] Additional GCP modules (Compute Engine, Cloud SQL)
 
 ### Future
-- [ ] GCP modules (Storage, VPC, Compute)
 - [ ] Multi-cloud stacks
 - [ ] Terraform Cloud integration
 - [ ] Policy as Code (Sentinel/OPA)
 - [ ] Infrastructure testing (Terratest)
+- [ ] Advanced monitoring and alerting modules
 
 ## Support and Community
 
@@ -371,26 +438,44 @@ See [CONTRIBUTING.md](docs/contributing.md) for guidelines.
 ### Terraform
 - [Terraform Documentation](https://www.terraform.io/docs)
 - [Terraform Best Practices](https://www.terraform-best-practices.com/)
-- [Azure Provider Docs](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
+- [Registry](https://registry.terraform.io/)
 
-### Azure
+### Cloud Providers
+
+#### Azure
 - [Azure Pricing Calculator](https://azure.microsoft.com/en-us/pricing/calculator/)
 - [Azure Free Account](https://azure.microsoft.com/en-us/free/)
 - [Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/)
 - [Cloud Adoption Framework](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/)
+- [Azure Provider Docs](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
+
+#### AWS
+- [AWS Pricing Calculator](https://calculator.aws/)
+- [AWS Free Tier](https://aws.amazon.com/free/)
+- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
+- [AWS Architecture Center](https://aws.amazon.com/architecture/)
+- [AWS Provider Docs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+
+#### GCP
+- [GCP Pricing Calculator](https://cloud.google.com/products/calculator)
+- [GCP Free Tier](https://cloud.google.com/free/docs/gcp-free-tier)
+- [GCP Well-Architected Framework](https://cloud.google.com/architecture/framework)
+- [GCP Architecture Center](https://cloud.google.com/architecture)
+- [GCP Provider Docs](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
 
 ### Cost Management
 - [Azure Cost Management](https://azure.microsoft.com/en-us/services/cost-management/)
-- [Azure Pricing](https://azure.microsoft.com/en-us/pricing/)
-- [Cost Optimization Guidance](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/cost-mgt-best-practices)
+- [AWS Cost Management](https://aws.amazon.com/aws-cost-management/)
+- [GCP Cost Management](https://cloud.google.com/cost-management)
+- [Multi-Cloud Cost Optimization](https://www.tensult.com/blogs/cloud-cost-optimization-strategies/)
 
 ## License
 
-[Specify your license here - e.g., MIT, Apache 2.0]
+MIT License - Copyright (c) 2025 Canepro
 
 ## Maintainers
 
-[List maintainers here]
+- [@Canepro](https://github.com/Canepro)
 
 ## Acknowledgments
 
