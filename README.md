@@ -2,6 +2,13 @@
 
 A collection of reusable, cost-conscious Terraform modules and example stacks for Azure, AWS, and GCP, with an Azure-first focus.
 
+## ⚡ Quick Deploy VMs
+
+**Need a VM in minutes?** Deploy ready-to-use VMs with one command:
+
+- 🚀 **[Quick Deploy Guide](docs/QUICK_DEPLOY.md)** - Deploy VMs in Azure/AWS/GCP in 2-3 minutes
+- 🎯 **Perfect for**: Development, testing, learning, temporary compute needs
+
 ## 🚀 New to Terraform? Start Here!
 
 **Never used Terraform or cloud infrastructure?** Follow these guides:
@@ -208,6 +215,7 @@ MyTerraform_Templates/
 
 | Stack | Description | Cost | Status |
 |-------|-------------|------|--------|
+| [vm](stacks/azure/vm/) | ⚡ Quick-deploy VM with SSH | ⚠️ ~$12/month | ✅ Ready 🆕 |
 | [sandbox](stacks/azure/sandbox/) | Safe sandbox with RG, Storage, VNet | ✅ $0.00 | ✅ Ready |
 | dev | Development environment | Coming Soon | 🚧 |
 | prod | Production environment | Coming Soon | 🚧 |
@@ -216,6 +224,7 @@ MyTerraform_Templates/
 
 | Stack | Description | Cost | Status |
 |-------|-------------|------|--------|
+| [vm](stacks/aws/vm/) | ⚡ Quick-deploy EC2 with SSH | ✅ FREE* | ✅ Ready 🆕 |
 | [sandbox](stacks/aws/sandbox/) | Safe sandbox with VPC, S3, Security Group | ✅ $0.00 | ✅ Ready 🆕 |
 | dev | Development environment | Coming Soon | 🚧 |
 | prod | Production environment | Coming Soon | 🚧 |
@@ -224,9 +233,12 @@ MyTerraform_Templates/
 
 | Stack | Description | Cost | Status |
 |-------|-------------|------|--------|
+| [vm](stacks/gcp/vm/) | ⚡ Quick-deploy Compute Engine | ✅ FREE* | ✅ Ready 🆕 |
 | [sandbox](stacks/gcp/sandbox/) | Safe sandbox with VPC, Cloud Storage | ✅ $0.00 | ✅ Ready 🆕 |
 | dev | Development environment | Coming Soon | 🚧 |
 | prod | Production environment | Coming Soon | 🚧 |
+
+*Free tier eligible (750 hrs/month for AWS, $300 credit for GCP)
 
 ## Cost Philosophy
 

@@ -1,0 +1,30 @@
+# GCP Compute Engine Quick Deploy Configuration
+# Copy this file to terraform.tfvars and customize it
+
+project_id   = "your-gcp-project-id"  # REQUIRED: Your GCP Project ID
+project_name = "quickvm"
+environment  = "dev"
+
+# GCP Configuration
+region       = "us-central1"           # Cheapest region
+zone         = "us-central1-a"
+
+# Network Configuration
+subnet_cidr = "10.0.1.0/24"
+
+# VM Configuration
+machine_type    = "e2-micro"      # Free tier eligible
+boot_disk_type  = "pd-standard"   # Cheapest disk type
+boot_disk_size  = 20              # Free tier includes 30GB
+ssh_user        = "ubuntu"
+
+# SSH Key (REQUIRED - update with your public key)
+# Generate with: ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your_key_here"
+
+# Optional: Startup script
+# startup_script = <<-EOT
+#   #!/bin/bash
+#   apt-get update
+#   apt-get install -y nginx
+# EOT

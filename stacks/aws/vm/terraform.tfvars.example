@@ -1,0 +1,26 @@
+# AWS EC2 Quick Deploy Configuration
+# Copy this file to terraform.tfvars and customize it
+
+project_name = "quickvm"
+environment  = "dev"
+region       = "us-east-1"
+
+# Network Configuration
+vpc_cidr    = "10.0.0.0/16"
+subnet_cidr = "10.0.1.0/24"
+
+# VM Configuration
+instance_type    = "t3.micro"  # Free tier eligible (750 hours/month)
+root_volume_type = "gp3"       # Cheapest and fastest
+root_volume_size = 30
+
+# SSH Key Pair (REQUIRED - create one in AWS Console first)
+# 1. Go to EC2 Dashboard > Key Pairs > Create Key Pair
+# 2. Download the .pem file
+# 3. Set permissions: chmod 400 your-key.pem
+# 4. Enter the key name and path here:
+key_name = "your-key-pair-name"
+key_path = "~/.ssh/your-key-pair-name.pem"  # Path to your downloaded .pem file
+
+# Networking
+enable_eip = true  # Enable static public IP (recommended)

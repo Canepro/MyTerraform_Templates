@@ -1,0 +1,21 @@
+# Azure VM Quick Deploy Configuration
+# Copy this file to terraform.tfvars and customize it
+
+project_name = "quickvm"
+environment  = "dev"
+location     = "eastus"
+
+# VM Configuration
+vm_size           = "Standard_B1s"  # Cheapest size: ~$9/month
+admin_username    = "azureuser"
+os_disk_type      = "Standard_LRS"  # Cheapest disk type
+os_disk_size_gb   = 30
+
+# SSH Key (REQUIRED - update with your public key)
+# Generate with: ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+ssh_public_key    = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your_key_here"
+
+# Cost Savings
+enable_auto_shutdown = true      # Auto-shutdown at 7 PM UTC
+auto_shutdown_time   = "1900"    # 24-hour format
+auto_shutdown_timezone = "UTC"
