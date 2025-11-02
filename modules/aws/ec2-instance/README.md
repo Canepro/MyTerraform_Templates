@@ -36,14 +36,34 @@ See [COST.md](./COST.md) for detailed cost information and savings strategies.
 
 ## How to Use
 
-### Basic Example
+### Basic Example (Recommended: Auto-Detect Latest AMI)
+
+```hcl
+module "ec2_instance" {
+  source = "../../modules/aws/ec2-instance"
+
+  name           = "my-app-server"
+  use_latest_ami = true  # Automatically use latest Amazon Linux 2023
+  instance_type  = "t3.micro"
+  subnet_id      = "subnet-12345678"
+  
+  security_group_ids = ["sg-12345678"]
+  
+  tags = {
+    environment = "dev"
+    managed_by  = "terraform"
+  }
+}
+```
+
+### With Specific AMI ID
 
 ```hcl
 module "ec2_instance" {
   source = "../../modules/aws/ec2-instance"
 
   name         = "my-app-server"
-  ami_id       = "ami-0c55b159cbfafe1f0"  # Amazon Linux 2023 (us-east-1)
+  ami_id       = "ami-0c55b159cbfafe1f0"  # Specific AMI ID
   instance_type = "t3.micro"
   subnet_id    = "subnet-12345678"
   
@@ -62,10 +82,10 @@ module "ec2_instance" {
 module "ec2_instance" {
   source = "../../modules/aws/ec2-instance"
 
-  name          = "my-app-server"
-  ami_id        = "ami-0c55b159cbfafe1f0"
-  instance_type = "t3.micro"
-  subnet_id     = aws_subnet.main.id
+  name           = "my-app-server"
+  use_latest_ami = true  # Automatically use latest Amazon Linux 2023
+  instance_type  = "t3.micro"
+  subnet_id      = aws_subnet.main.id
   security_group_ids = [aws_security_group.ec2.id]
   
   # IAM role for S3 access
@@ -228,9 +248,12 @@ module "arm_instance" {
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|----------|
 | name | Name tag for the EC2 instance | string | - | yes |
-| ami_id | AMI ID to use for the instance | string | - | yes |
+| use_latest_ami | Auto-detect latest Amazon Linux 2023 AMI | bool | `false` | no |
+| ami_id | AMI ID (required if use_latest_ami is false) | string | `""` | no* |
 | instance_type | EC2 instance type | string | `"t3.micro"` | no |
 | subnet_id | Subnet ID where instance will be launched | string | - | yes |
+
+*Either `use_latest_ami = true` OR `ami_id` must be provided
 | security_group_ids | List of security group IDs | list(string) | `[]` | no |
 | key_name | Name of the SSH key pair | string | `null` | no |
 | root_volume_type | Root volume type | string | `"gp3"` | no |

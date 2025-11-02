@@ -8,13 +8,20 @@ variable "name" {
   }
 }
 
+variable "use_latest_ami" {
+  description = "If true, automatically use the latest Amazon Linux 2023 AMI (recommended). If false, use ami_id."
+  type        = bool
+  default     = false
+}
+
 variable "ami_id" {
-  description = "AMI ID to use for the instance (e.g., Amazon Linux 2023)"
+  description = "AMI ID to use for the instance (required if use_latest_ami is false)"
   type        = string
+  default     = ""
 
   validation {
-    condition     = can(regex("^ami-[a-z0-9]+$", var.ami_id))
-    error_message = "AMI ID must be in the format ami-xxxxxxxxx"
+    condition     = var.use_latest_ami || (can(regex("^ami-[a-z0-9]+$", var.ami_id)) && length(var.ami_id) > 0)
+    error_message = "AMI ID must be in the format ami-xxxxxxxxx or set use_latest_ami to true"
   }
 }
 
