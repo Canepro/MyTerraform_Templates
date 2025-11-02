@@ -1,0 +1,34 @@
+# Remote State Backend Configuration
+# 
+# This example shows how to configure GCS as the Terraform backend
+# for storing remote state files. This is recommended for team collaboration.
+#
+# Prerequisites:
+# 1. Create a GCS bucket for Terraform state
+# 2. Copy this file to backend.tf and customize the values
+#
+# IMPORTANT: Do NOT commit backend.tf with sensitive values to version control
+# Add backend.tf to .gitignore if it contains credentials
+
+terraform {
+  backend "gcs" {
+    # GCS bucket for Terraform state
+    bucket = "my-terraform-state-bucket"  # Must be globally unique
+    prefix = "sandbox/terraform.tfstate"   # State file path
+    # project = "my-terraform-project"     # Optional: specify project
+    # region  = "us-central1"              # Optional: specify region
+  }
+}
+
+# To initialize with this backend:
+# 1. Create the GCS bucket (one-time setup):
+#    gsutil mb gs://my-terraform-state-bucket/
+#    gsutil versioning set on gs://my-terraform-state-bucket/
+#
+# 2. Copy this file to backend.tf
+# 3. Update the values above
+# 4. Run: terraform init
+
+# To migrate existing local state to GCS:
+# terraform init -migrate-state
+

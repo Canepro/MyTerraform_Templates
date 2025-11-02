@@ -1,0 +1,32 @@
+# Example Terraform variables for the GCP sandbox stack
+# Copy this file to terraform.tfvars and customize as needed
+
+# GCP Project ID (must already exist)
+project_id = "my-terraform-project"
+
+# Resource naming
+prefix      = "myapp"
+environment = "sandbox"
+suffix      = ""  # Optional: add "001", "east", etc. for multiple deployments
+
+# GCP region (choose cost-effective region)
+region = "us-central1"  # Cheapest region
+
+# Cost tracking
+cost_center = "engineering"
+
+# Additional custom tags (optional)
+custom_tags = {
+  project = "terraform-templates"
+  owner   = "Your Name"
+}
+
+# Network configuration (optional, defaults provided)
+# subnets = [
+#   {
+#     name   = "subnet-default"
+#     cidr   = "10.0.1.0/24"
+#     region = "us-central1"
+#   }
+# ]
+

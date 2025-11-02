@@ -1,0 +1,26 @@
+# Example Terraform variables for the AWS sandbox stack
+# Copy this file to terraform.tfvars and customize as needed
+
+# Resource naming
+prefix      = "myapp"
+environment = "sandbox"
+suffix      = ""  # Optional: add "001", "east", etc. for multiple deployments
+
+# AWS region (choose cost-effective region close to you)
+region = "us-east-1"  # Cheapest region
+
+# Cost tracking
+cost_center = "engineering"
+
+# Additional custom tags (optional)
+custom_tags = {
+  project = "terraform-templates"
+  owner   = "Your Name"
+}
+
+# Network configuration (optional, defaults provided)
+# vpc_cidr             = "10.0.0.0/16"
+# availability_zones   = ["us-east-1a", "us-east-1b"]
+# public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+# private_subnet_cidrs = []
+

@@ -141,8 +141,10 @@ MyTerraform_Templates/
 ├── stacks/                      # Deployable root configurations
 │   ├── azure/
 │   │   └── sandbox/            # Safe, cost-free sandbox environment ✅
-│   ├── aws/                    # AWS stacks (coming soon)
-│   └── gcp/                    # GCP stacks (coming soon)
+│   ├── aws/
+│   │   └── sandbox/            # Safe, cost-free AWS sandbox 🆕
+│   └── gcp/
+│       └── sandbox/            # Safe, cost-free GCP sandbox 🆕
 ├── docs/                        # Documentation and guidelines
 │   ├── GETTING_STARTED.md      # 📖 Beginner's first deployment guide 🆕
 │   ├── TUTORIALS.md            # 🎓 Complete tutorials collection 🆕
@@ -200,11 +202,29 @@ MyTerraform_Templates/
 
 ## Example Stacks
 
+**Ready-to-deploy infrastructure** for learning and experimentation.
+
 ### Azure
 
 | Stack | Description | Cost | Status |
 |-------|-------------|------|--------|
 | [sandbox](stacks/azure/sandbox/) | Safe sandbox with RG, Storage, VNet | ✅ $0.00 | ✅ Ready |
+| dev | Development environment | Coming Soon | 🚧 |
+| prod | Production environment | Coming Soon | 🚧 |
+
+### AWS
+
+| Stack | Description | Cost | Status |
+|-------|-------------|------|--------|
+| [sandbox](stacks/aws/sandbox/) | Safe sandbox with VPC, S3, Security Group | ✅ $0.00 | ✅ Ready 🆕 |
+| dev | Development environment | Coming Soon | 🚧 |
+| prod | Production environment | Coming Soon | 🚧 |
+
+### GCP
+
+| Stack | Description | Cost | Status |
+|-------|-------------|------|--------|
+| [sandbox](stacks/gcp/sandbox/) | Safe sandbox with VPC, Cloud Storage | ✅ $0.00 | ✅ Ready 🆕 |
 | dev | Development environment | Coming Soon | 🚧 |
 | prod | Production environment | Coming Soon | 🚧 |
 
@@ -457,19 +477,23 @@ git push origin feature/new-module
 ### Current (Q4 2025)
 - [x] Repository structure
 - [x] Common modules (naming, tags)
-- [x] Azure modules (RG, Storage, VNet, Key Vault, AKS, VMs, App Service, Container Apps)
-- [x] AWS modules (S3, VPC, IAM User)
+- [x] Azure modules (8 complete modules)
+- [x] AWS modules (S3, VPC, IAM User, EC2 Instance)
 - [x] GCP modules (Storage, VPC, Service Account)
-- [x] Sandbox stack example
+- [x] Azure sandbox stack
+- [x] AWS sandbox stack 🆕
+- [x] GCP sandbox stack 🆕
 - [x] CI/CD workflows
-- [x] Documentation
+- [x] Comprehensive beginner documentation 🆕
+- [x] Multi-cloud deployment guides 🆕
 
 ### Next (Q1 2026)
-- [ ] Dev and prod stacks
+- [ ] AWS additional modules (ECS, EKS, Lambda, RDS, Secrets Manager)
+- [ ] GCP additional modules (Compute Engine, Cloud SQL)
+- [ ] Dev and prod stacks (all clouds)
 - [ ] Cost policy enforcement in CI
 - [ ] Module versioning with Git tags
-- [ ] Additional AWS modules (EC2, RDS, Lambda)
-- [ ] Additional GCP modules (Compute Engine, Cloud SQL)
+- [ ] Terratest integration
 
 ### Future
 - [ ] Multi-cloud stacks
