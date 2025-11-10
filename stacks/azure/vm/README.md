@@ -1,198 +1,322 @@
-# Azure VM Quick Deploy
+# Azure VM Stack
 
-Deploy a ready-to-use Ubuntu Linux VM in Azure in under 3 minutes with SSH access configured.
+Deploy a production-ready Azure Linux VM using the unified module interface with environment-driven defaults, auto-shutdown, and configurable security.
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- [Terraform](https://www.terraform.io/downloads) >= 1.5.0
-- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-- Azure account with appropriate permissions
-- SSH key pair
-
-### Step 1: Generate SSH Key (if you don't have one)
-
-```bash
-ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
-# Save to ~/.ssh/id_rsa (default location)
-```
-
-Get your public key:
-```bash
-# Linux/Mac
-cat ~/.ssh/id_rsa.pub
-
-# Windows (PowerShell)
-Get-Content ~/.ssh/id_rsa.pub
-```
-
-### Step 2: Login to Azure
-
-```bash
-az login
-```
-
-### Step 3: Configure Variables
+## 🎯 Quick Deploy
 
 ```bash
 cd stacks/azure/vm
+
+# Copy and edit configuration
 cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars and set your ssh_public_key
+
+# Deploy with training profile
+terraform init
+terraform apply
+
+# Or use a specific environment profile
+terraform apply -var-file=terraform.tfvars.dev
+terraform apply -var-file=terraform.tfvars.training
+terraform apply -var-file=terraform.tfvars.prod
 ```
 
-Edit `terraform.tfvars` and set your SSH public key:
+## 🏗️ What Gets Created
+
+This stack provisions:
+
+- ✅ **Resource Group** for logical grouping
+- ✅ **Virtual Network** (10.0.0.0/16)
+- ✅ **Subnet** (10.0.1.0/24)
+- ✅ **Network Security Group** with configurable ports (22, 80, 8080 by default)
+- ✅ **Linux VM** with environment-specific sizing (via module)
+- ✅ **Public IP** (optional, enabled by default)
+- ✅ **Auto-shutdown schedule** (4-hour default for sandbox safety)
+- ✅ **Docker** (installed by default, can be disabled)
+- ✅ **Jenkins** (installed by default via Docker, can be disabled)
+
+## 📊 Environment Profiles
+
+| Environment | VM Size | OS Disk | Auto-Shutdown | Use Case |
+|-------------|---------|---------|---------------|----------|
+| **dev** | Standard_B1s | 30GB | ✅ 4 hours | Cost-effective labs |
+| **training** | Standard_B2ms | 50GB | ✅ 4 hours | Classroom workshops |
+| **prod** | Standard_D2s_v3 | 100GB | ❌ Disabled | Production workloads |
+
+Override defaults by setting `vm_size` or `os_disk_size_gb` in your tfvars file.
+
+## 🐳 Software Installation (Docker & Jenkins)
+
+Docker and Jenkins are **installed by default** on all VMs. You can disable them individually if not needed.
+
+### Default Behavior
 ```hcl
-ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your_key_here"
+install_docker  = true   # Docker installed automatically
+install_jenkins = true   # Jenkins installed as native service
 ```
 
-### Step 4: Deploy
+### Access Jenkins
+After the VM is provisioned, Jenkins will be available at:
+```
+http://<vm-public-ip>:8080
+```
+
+### Get Jenkins Initial Admin Password
+```bash
+# Get the Jenkins URL
+terraform output jenkins_url
+
+# SSH to the VM and get the initial admin password
+ssh azureuser@<vm-ip> "sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
+
+# Or get instructions from terraform
+terraform output jenkins_admin_password
+```
+
+**Initial Admin Password**: Located at `/var/lib/jenkins/secrets/initialAdminPassword` on the VM  
+**Setup**: Follow the Jenkins setup wizard on first access
+
+### Disable Docker or Jenkins
+If you don't need these tools, set them to `false` in your `terraform.tfvars`:
+```hcl
+install_docker  = false   # Skip Docker installation
+install_jenkins = false   # Skip Jenkins installation
+```
+
+### Note
+- Jenkins requires Docker, so if you disable Docker, Jenkins won't be installed
+- Port 8080 is open by default in the network security group for Jenkins access
+- Both services are configured to start automatically on boot
+
+## 💰 Cost Estimates
+
+### Development (Standard_B1s, 30GB)
+```
+VM (Standard_B1s):      $7.59/month
+Storage (30GB HDD):     $1.54/month
+Public IP (Standard):   $3.65/month
+───────────────────────────────────
+Total:                 ~$12.78/month
+With 4-hour auto-shutdown: ~$4.26/month (67% savings!)
+```
+
+### Training (Standard_B2ms, 50GB)
+```
+VM (Standard_B2ms):    $60.74/month
+Storage (50GB HDD):     $2.56/month
+Public IP (Standard):   $3.65/month
+───────────────────────────────────
+Total:                 ~$66.95/month
+With 4-hour auto-shutdown: ~$22.32/month (67% savings!)
+```
+
+### Production (Standard_D2s_v3, 100GB)
+```
+VM (Standard_D2s_v3):  $96.36/month
+Storage (100GB HDD):    $5.12/month
+Public IP (Standard):   $3.65/month
+───────────────────────────────────
+Total:                ~$105.13/month
+```
+
+## 🚀 Usage Examples
+
+### Basic Deployment (Training Profile)
+
+```hcl
+# terraform.tfvars
+project_name   = "myapp"
+environment    = "training"
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ..."
+```
 
 ```bash
-terraform init
-terraform plan
 terraform apply
 ```
 
-**That's it!** Your VM is ready in 2-3 minutes. You'll get output like:
+### Custom Configuration
 
-```
-ssh azureuser@52.168.123.45
-```
-
-## 📋 What Gets Created
-
-- ✅ Resource Group
-- ✅ Virtual Network (10.0.0.0/16)
-- ✅ Subnet (10.0.1.0/24)
-- ✅ Network Security Group (SSH port 22 open)
-- ✅ Public IP (static)
-- ✅ Network Interface
-- ✅ Ubuntu 22.04 LTS VM (Standard_B1s)
-- ✅ Optional: Auto-shutdown schedule
-
-## 💰 Cost
-
-- **Standard_B1s VM**: ~$9.50/month (~$0.013/hour)
-- **Standard_LRS Disk**: ~$2.30/month for 30GB
-- **Networking**: FREE
-- **Total**: ~$12/month
-
-**Money-saving tip**: Enable auto-shutdown in `terraform.tfvars`:
 ```hcl
+# terraform.tfvars
+project_name = "myapp"
+environment  = "dev"
+location     = "westus2"
+
+# OS selection
+os_distribution = "azure-linux"  # or "ubuntu"
+
+# Override environment defaults
+vm_size        = "Standard_B2s"
+os_disk_size_gb = 40
+
+# Security
+allowed_ports = [22, 443, 8080]
+allowed_cidrs = ["203.0.113.0/24"]  # Your corporate IP
+
+# Auto-shutdown
 enable_auto_shutdown = true
-auto_shutdown_time   = "1900"  # Auto-shutdown at 7 PM daily
+auto_shutdown_hours  = 6
+auto_shutdown_timezone = "Eastern Standard Time"
 ```
 
-## 🔧 Configuration Options
+### Production with Managed Identity
 
-See [terraform.tfvars.example](terraform.tfvars.example) for all available options:
+```hcl
+# terraform.tfvars.prod
+environment  = "prod"
+vm_size      = "Standard_D2s_v3"
 
-- `project_name`: Name prefix for all resources
-- `environment`: Environment tag (dev/test/prod)
-- `location`: Azure region
-- `vm_size`: VM instance size
-- `admin_username`: SSH username
-- `os_disk_type`: Storage type (Standard_LRS is cheapest)
-- `enable_auto_shutdown`: Enable cost-saving auto-shutdown
+# Security
+allowed_cidrs = ["10.0.0.0/8"]
 
-## 🖥️ Connect to Your VM
+# Enable managed identity for Azure resource access
+enable_managed_identity = true
 
-After deployment, you'll see output with the SSH command:
-
-```bash
-ssh azureuser@YOUR_PUBLIC_IP
+# Disable auto-shutdown for production
+enable_auto_shutdown = false
 ```
 
-Or use:
+## 🔑 SSH Key Setup
+
+### Option 1: Use Existing Key
+
 ```bash
-# Get the IP and SSH command
+# Get your public key content
+cat ~/.ssh/id_rsa.pub
+
+# Or from Windows path
+cat /mnt/c/Users/i/.ssh/id_rsa.pub
+
+# Copy the entire output (starts with ssh-rsa or ssh-ed25519)
+```
+
+### Option 2: Generate New Key
+
+```bash
+# RSA (recommended for compatibility)
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/azure_key
+
+# Or Ed25519 (modern, more secure)
+ssh-keygen -t ed25519 -f ~/.ssh/azure_key
+
+# Get the public key
+cat ~/.ssh/azure_key.pub
+```
+
+### Add to terraform.tfvars
+
+```hcl
+# Paste the FULL public key content (not the file path)
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your-email@example.com"
+```
+
+**Important**: Azure needs the actual key content, not a file path!
+
+## 🔌 Connect to Your VM
+
+After deployment:
+
+```bash
+# Get SSH command from output
 terraform output ssh_command
 
-# Just get the IP
-terraform output vm_public_ip
+# Or manually
+ssh azureuser@$(terraform output -raw vm_public_ip)
 ```
 
-## 🧹 Destroy Everything
+## 🛡️ Security Best Practices
 
-When you're done:
+1. **Restrict CIDR blocks** in production:
+   ```hcl
+   allowed_cidrs = ["10.0.0.0/8"]  # Corporate network only
+   ```
+
+2. **Use Azure Bastion** instead of public IP:
+   ```hcl
+   enable_public_ip = false
+   # Deploy Azure Bastion in the VNet
+   ```
+
+3. **Enable managed identity** for Azure resource access:
+   ```hcl
+   enable_managed_identity = true
+   ```
+
+4. **Monitor costs** with Azure Cost Management and set budget alerts
+
+## 🧹 Cleanup
 
 ```bash
+# Destroy everything
 terraform destroy
+
+# Or with specific profile
+terraform destroy -var-file=terraform.tfvars.training
 ```
 
-This removes all created resources and stops all billing.
+**Important**: Azure VMs continue to incur compute costs even when stopped. Use `terraform destroy` or Azure CLI to deallocate:
 
-## 📊 VM Details
-
-| Property | Value |
-|----------|-------|
-| **OS** | Ubuntu 22.04 LTS (Gen2) |
-| **Size** | Standard_B1s (1 vCPU, 1GB RAM) |
-| **Disk** | 30GB Standard HDD |
-| **Network** | Public IP + VNet |
-| **SSH** | Port 22 open to the world |
-
-## 🔍 Troubleshooting
-
-### "Could not authenticate using ssh-agent"
-Make sure your SSH private key is in the default location:
 ```bash
-eval $(ssh-agent)
-ssh-add ~/.ssh/id_rsa
+az vm deallocate --resource-group rg-quickvm-training --name quickvm-vm
 ```
 
-### "Connection refused"
-Wait a minute or two for the VM to fully boot, then try again.
+## 📝 Variables Reference
 
-### "Permission denied (publickey)"
-Double-check your SSH public key in `terraform.tfvars` is correct.
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `project_name` | Project identifier | `"quickvm"` | No |
+| `environment` | Environment profile | `"training"` | No |
+| `location` | Azure region | `"eastus"` | No |
+| `os_distribution` | OS choice (ubuntu, azure-linux) | `"ubuntu"` | No |
+| `vm_size` | Override environment default | `null` | No |
+| `os_disk_size_gb` | Override environment default (GB) | `null` | No |
+| `allowed_ports` | Inbound TCP ports | `[22, 80, 8080]` | No |
+| `allowed_cidrs` | Allowed CIDR blocks | `["0.0.0.0/0"]` | No |
+| `admin_username` | SSH username | `"azureuser"` | No |
+| `ssh_public_key` | SSH public key content | - | **Yes** |
+| `enable_public_ip` | Allocate public IP | `true` | No |
+| `enable_auto_shutdown` | 4-hour auto-shutdown | `true` | No |
 
-### Need to see logs?
+See [variables.tf](./variables.tf) for complete list.
+
+## 🎓 Learn More
+
+- [Module Documentation](../../../modules/azure/virtual-machine/README.md)
+- [Cost Guide](../../../modules/azure/virtual-machine/COST.md)
+- [Beginner's Guide](../../../docs/BEGINNER_GUIDE.md)
+- [Azure Setup Guide](../../../docs/azure-setup-guide.md)
+
+## 🐛 Troubleshooting
+
+### "InvalidAuthenticationTokenTenant"
+Login to Azure CLI:
 ```bash
-# Azure Portal
-az vm list --output table
-
-# Get boot diagnostics
-az vm boot-diagnostics get-boot-log --name quickvm-vm --resource-group rg-quickvm-dev
+az login
+az account show
 ```
 
-## 🎯 Use Cases
+### "The subscription is not registered to use namespace"
+Register required providers:
+```bash
+az provider register --namespace Microsoft.Compute
+az provider register --namespace Microsoft.Network
+```
 
-- Development environment
-- Testing new software
-- Learning cloud infrastructure
-- Temporary compute needs
-- CI/CD build agents
-- Personal cloud services
+### Connection Refused
+Wait 2-3 minutes for VM to boot and cloud-init to complete.
 
-## 🔐 Security Best Practices
+### "SSH key validation failed"
+Ensure your public key starts with `ssh-rsa`, `ssh-ed25519`, or `ecdsa-`:
+```bash
+cat ~/.ssh/id_rsa.pub | head -c 50
+```
 
-1. **Use strong SSH keys**: `ssh-keygen -t rsa -b 4096`
-2. **Limit SSH access**: Consider restricting `source_address_prefix` in `main.tf`
-3. **Enable auto-shutdown**: Prevents accidental ongoing costs
-4. **Use Key Vault**: For production, store secrets in Azure Key Vault
-5. **Enable just-in-time access**: Use Azure Security Center features
+### Auto-Shutdown Not Triggering
+The shutdown schedule uses "current time + hours". Check the schedule in Azure Portal:
+```bash
+az resource show --ids $(terraform output -raw vm_id)/schedules/shutdown-computevm-*
+```
 
-## 📚 Next Steps
+---
 
-- Add a load balancer for high availability
-- Deploy multiple VMs in an availability set
-- Use managed disks for better performance
-- Configure application insights for monitoring
-- Set up automated backups
-
-## 💡 Tips
-
-- **Test locally first**: Use `terraform plan` to preview changes
-- **Always destroy**: Run `terraform destroy` when done to avoid charges
-- **Monitor costs**: Set up Azure cost alerts
-- **Keep it simple**: This stack is designed for quick deployments
-- **Scale up**: Edit `vm_size` for more CPU/RAM if needed
-
-## 🤝 Contributing
-
-Found a bug or have a suggestion? [Open an issue](https://github.com/Canepro/MyTerraform_Templates/issues) or submit a PR.
-
-## 📄 License
-
-MIT License - Copyright (c) 2025
+**Cost-Conscious Deployment** | **Sandbox-Safe Defaults** | **Production-Ready**

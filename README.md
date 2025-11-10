@@ -13,7 +13,9 @@ A collection of reusable, cost-conscious Terraform modules and example stacks fo
 
 **Never used Terraform or cloud infrastructure?** Follow these guides:
 
-- 📖 **[Getting Started Guide for Absolute Beginners](docs/GETTING_STARTED.md)** - Your first 10 minutes with Terraform
+- 📖 **[Beginner's Guide](docs/BEGINNER_GUIDE.md)** - Complete deployment workflow with credentials, SSH keys, and environment profiles
+- 🔑 **[SSH Key Management](docs/SSH_KEY_MANAGEMENT.md)** - Comprehensive guide for AWS/Azure SSH key setup
+- ⚡ **[Quick Reference](docs/QUICK_REFERENCE.md)** - Copy-paste commands for common tasks
 - 🎓 **[Complete Tutorials Collection](docs/TUTORIALS.md)** - Step-by-step learning paths
 - 🌍 **[AWS Setup Guide](docs/aws-setup-guide.md)** - Complete AWS account setup and deployment
 - ☁️ **[GCP Setup Guide](docs/gcp-setup-guide.md)** - Complete GCP account setup and deployment
@@ -25,6 +27,7 @@ A collection of reusable, cost-conscious Terraform modules and example stacks fo
 This repository provides:
 - **Reusable Modules**: Small, focused Terraform modules following best practices
 - **Example Stacks**: Complete, deployable infrastructure configurations
+- **Docker & Jenkins**: VMs include Docker and Jenkins by default (configurable)
 - **Cost Transparency**: Every module includes cost information (✅ free, ⚠️ paid)
 - **Security Defaults**: Secure configurations out-of-the-box
 - **CI/CD Integration**: GitHub Actions workflows for validation and deployment

@@ -1,21 +1,54 @@
-# Azure VM Quick Deploy Configuration
-# Copy this file to terraform.tfvars and customize it
+# Azure VM Configuration
+# Copy this file to terraform.tfvars and customize
 
+# Project and Environment
 project_name = "quickvm"
-environment  = "dev"
-location     = "eastus"
+environment  = "training"  # dev, training, or prod
 
-# VM Configuration
-vm_size           = "Standard_B1s"  # Cheapest size: ~$9/month
-admin_username    = "azureuser"
-os_disk_type      = "Standard_LRS"  # Cheapest disk type
-os_disk_size_gb   = 30
+# Region
+location = "eastus"
 
-# SSH Key (REQUIRED - update with your public key)
-# Generate with: ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
-ssh_public_key    = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your_key_here"
+# Operating System
+os_distribution = "ubuntu"  # ubuntu or azure-linux
 
-# Cost Savings
-enable_auto_shutdown = true      # Auto-shutdown at 7 PM UTC
-auto_shutdown_time   = "1900"    # 24-hour format
+# Instance Sizing (leave null to use environment defaults)
+# dev:      Standard_B1s,  30GB
+# training: Standard_B2ms, 50GB
+# prod:     Standard_D2s_v3, 100GB
+vm_size        = null
+os_disk_size_gb = null
+os_disk_type   = "Standard_LRS"
+
+# Security
+allowed_ports = [22, 80, 8080]
+allowed_cidrs = ["0.0.0.0/0"]  # Restrict to your IP: ["203.0.113.0/24"]
+
+# SSH Access (REQUIRED)
+# Generate key: ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa
+# Get public key: cat ~/.ssh/id_rsa.pub
+admin_username = "azureuser"
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your_key_here"
+
+# Static Public IP
+enable_public_ip = true
+
+# Auto-Shutdown (recommended for sandbox/training)
+enable_auto_shutdown = true
+auto_shutdown_hours  = 4
 auto_shutdown_timezone = "UTC"
+
+# Software Installation (installed by default)
+install_docker  = true   # Set to false to skip Docker installation
+install_jenkins = true   # Set to false to skip Jenkins installation (requires Docker)
+
+# Optional: Managed identity for Azure resource access
+# enable_managed_identity = true
+
+# Optional: Email notifications for auto-shutdown
+# auto_shutdown_notification_enabled = false
+
+# Additional tags
+tags = {
+  Owner = "your-name"
+  Team  = "engineering"
+}

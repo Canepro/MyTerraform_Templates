@@ -8,6 +8,27 @@ variable "name" {
   }
 }
 
+variable "project" {
+  description = "Project tag applied to all resources"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9-_]{1,64}$", var.project))
+    error_message = "Project must be 1-64 characters using alphanumeric, hyphen, or underscore"
+  }
+}
+
+variable "environment" {
+  description = "Deployment environment (dev, training, prod)"
+  type        = string
+  default     = "training"
+
+  validation {
+    condition     = contains(["dev", "training", "prod"], var.environment)
+    error_message = "Environment must be one of dev, training, or prod"
+  }
+}
+
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
@@ -25,9 +46,42 @@ variable "subnet_id" {
 }
 
 variable "vm_size" {
-  description = "VM size (Standard_B1s is cheapest)"
+  description = "VM size. Defaults are derived from the environment profile when null."
   type        = string
-  default     = "Standard_B1s"
+  default     = null
+}
+
+variable "os_disk_size_gb" {
+  description = "OS disk size in GB. Defaults are derived from the environment profile when null."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.os_disk_size_gb == null || (var.os_disk_size_gb >= 30 && var.os_disk_size_gb <= 2048)
+    error_message = "OS disk size must be between 30 and 2048 GB"
+  }
+}
+
+variable "os_disk_storage_account_type" {
+  description = "Storage account type for OS disk (Standard_LRS is cheapest)"
+  type        = string
+  default     = "Standard_LRS"
+
+  validation {
+    condition     = contains(["Standard_LRS", "StandardSSD_LRS", "Premium_LRS"], var.os_disk_storage_account_type)
+    error_message = "Must be Standard_LRS, StandardSSD_LRS, or Premium_LRS"
+  }
+}
+
+variable "os_distribution" {
+  description = "Base operating system to deploy (ubuntu or azure-linux)"
+  type        = string
+  default     = "ubuntu"
+
+  validation {
+    condition     = contains(["ubuntu", "azure-linux"], var.os_distribution)
+    error_message = "os_distribution must be one of: ubuntu, azure-linux"
+  }
 }
 
 variable "admin_username" {
@@ -51,57 +105,27 @@ variable "ssh_public_key" {
   }
 }
 
+variable "allowed_ports" {
+  description = "List of TCP ports to allow inbound from allowed_cidrs."
+  type        = list(number)
+  default     = [22, 80, 8080]
+
+  validation {
+    condition     = length([for port in var.allowed_ports : port if port > 0 && port <= 65535]) == length(var.allowed_ports)
+    error_message = "Allowed ports must be between 1 and 65535"
+  }
+}
+
+variable "allowed_cidrs" {
+  description = "CIDR blocks allowed to access the VM."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
 variable "enable_public_ip" {
-  description = "Enable public IP address for the VM"
+  description = "Provision a static public IP for the VM"
   type        = bool
-  default     = false
-}
-
-variable "os_disk_storage_account_type" {
-  description = "Storage account type for OS disk (Standard_LRS is cheapest)"
-  type        = string
-  default     = "Standard_LRS"
-
-  validation {
-    condition     = contains(["Standard_LRS", "StandardSSD_LRS", "Premium_LRS"], var.os_disk_storage_account_type)
-    error_message = "Must be Standard_LRS, StandardSSD_LRS, or Premium_LRS"
-  }
-}
-
-variable "os_disk_size_gb" {
-  description = "OS disk size in GB"
-  type        = number
-  default     = 30
-
-  validation {
-    condition     = var.os_disk_size_gb >= 30 && var.os_disk_size_gb <= 2048
-    error_message = "OS disk size must be between 30 and 2048 GB"
-  }
-}
-
-# Ubuntu 22.04 LTS by default
-variable "image_publisher" {
-  description = "OS image publisher"
-  type        = string
-  default     = "Canonical"
-}
-
-variable "image_offer" {
-  description = "OS image offer"
-  type        = string
-  default     = "0001-com-ubuntu-server-jammy"
-}
-
-variable "image_sku" {
-  description = "OS image SKU"
-  type        = string
-  default     = "22_04-lts-gen2"
-}
-
-variable "image_version" {
-  description = "OS image version"
-  type        = string
-  default     = "latest"
+  default     = true
 }
 
 variable "enable_managed_identity" {
@@ -111,15 +135,20 @@ variable "enable_managed_identity" {
 }
 
 variable "enable_auto_shutdown" {
-  description = "Enable auto-shutdown schedule (recommended for dev/test)"
+  description = "Enable auto-shutdown schedule (recommended for sandbox/training)"
   type        = bool
-  default     = false
+  default     = true
 }
 
-variable "auto_shutdown_time" {
-  description = "Auto-shutdown time (24-hour format, e.g., '1900' for 7 PM)"
-  type        = string
-  default     = "1900"
+variable "auto_shutdown_hours" {
+  description = "Number of hours after provisioning before issuing a shutdown"
+  type        = number
+  default     = 4
+
+  validation {
+    condition     = var.auto_shutdown_hours >= 1 && var.auto_shutdown_hours <= 24
+    error_message = "Auto shutdown hours must be between 1 and 24"
+  }
 }
 
 variable "auto_shutdown_timezone" {
@@ -134,8 +163,20 @@ variable "auto_shutdown_notification_enabled" {
   default     = false
 }
 
+variable "install_docker" {
+  description = "Install Docker on the VM"
+  type        = bool
+  default     = true
+}
+
+variable "install_jenkins" {
+  description = "Install Jenkins on the VM (requires Docker if set to true)"
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
-  description = "Tags to apply to the VM and related resources"
+  description = "Additional tags to merge into all resources"
   type        = map(string)
   default     = {}
 }

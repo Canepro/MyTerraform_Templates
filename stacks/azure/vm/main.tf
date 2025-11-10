@@ -44,105 +44,48 @@ resource "azurerm_subnet" "this" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-# Network Security Group with SSH rule
-resource "azurerm_network_security_group" "this" {
-  name                = "nsg-${var.project_name}-vm"
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
+# Virtual Machine Module
+module "azure_vm" {
+  source = "../../../modules/azure/virtual-machine"
 
-  security_rule {
-    name                       = "SSH"
-    priority                   = 1000
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  tags = azurerm_resource_group.this.tags
-}
-
-# Associate NSG with subnet
-resource "azurerm_subnet_network_security_group_association" "this" {
-  subnet_id                 = azurerm_subnet.this.id
-  network_security_group_id = azurerm_network_security_group.this.id
-}
-
-# Public IP
-resource "azurerm_public_ip" "this" {
-  name                = "pip-${var.project_name}-vm"
+  name                = "${var.project_name}-vm"
+  project             = var.project_name
+  environment         = var.environment
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
+  subnet_id           = azurerm_subnet.this.id
 
-  tags = azurerm_resource_group.this.tags
-}
+  # OS selection
+  os_distribution = var.os_distribution
 
-# Network Interface
-resource "azurerm_network_interface" "this" {
-  name                = "nic-${var.project_name}-vm"
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
+  # Instance sizing (uses environment defaults if null)
+  vm_size                      = var.vm_size
+  os_disk_size_gb              = var.os_disk_size_gb
+  os_disk_storage_account_type = var.os_disk_type
 
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.this.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.this.id
-  }
+  # SSH access
+  admin_username = var.admin_username
+  ssh_public_key = var.ssh_public_key
 
-  tags = azurerm_resource_group.this.tags
-}
+  # Security
+  allowed_ports = var.allowed_ports
+  allowed_cidrs = var.allowed_cidrs
 
-# Virtual Machine
-resource "azurerm_linux_virtual_machine" "this" {
-  name                  = "${var.project_name}-vm"
-  location              = azurerm_resource_group.this.location
-  resource_group_name   = azurerm_resource_group.this.name
-  size                  = var.vm_size
-  admin_username        = var.admin_username
-  network_interface_ids = [azurerm_network_interface.this.id]
+  # Static public IP
+  enable_public_ip = var.enable_public_ip
 
-  disable_password_authentication = true
+  # Auto-shutdown for sandbox safety
+  enable_auto_shutdown   = var.enable_auto_shutdown
+  auto_shutdown_hours    = var.auto_shutdown_hours
+  auto_shutdown_timezone = var.auto_shutdown_timezone
 
-  admin_ssh_key {
-    username   = var.admin_username
-    public_key = var.ssh_public_key
-  }
+  # Optional features
+  enable_managed_identity            = var.enable_managed_identity
+  auto_shutdown_notification_enabled = var.auto_shutdown_notification_enabled
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = var.os_disk_type
-    disk_size_gb         = var.os_disk_size_gb
-  }
+  # Software installation
+  install_docker  = var.install_docker
+  install_jenkins = var.install_jenkins
 
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
-    version   = "latest"
-  }
-
-  tags = azurerm_resource_group.this.tags
-}
-
-# Optional: Auto-shutdown schedule
-resource "azurerm_dev_test_global_vm_shutdown_schedule" "this" {
-  count = var.enable_auto_shutdown ? 1 : 0
-
-  virtual_machine_id    = azurerm_linux_virtual_machine.this.id
-  location              = azurerm_resource_group.this.location
-  enabled               = true
-  daily_recurrence_time = var.auto_shutdown_time
-  timezone              = var.auto_shutdown_timezone
-
-  notification_settings {
-    enabled = false
-  }
-
-  tags = azurerm_resource_group.this.tags
+  tags = var.tags
 }

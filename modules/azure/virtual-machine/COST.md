@@ -10,23 +10,30 @@ Azure Virtual Machines incur hourly costs. Always enable auto-shutdown for dev/t
 
 | VM Size | vCPU | RAM | Cost (East US) | Use Case |
 |---------|------|-----|----------------|----------|
-| **Standard_B1s** | 1 | 1 GB | **~$7.59** | Dev/test, minimal workloads |
+| **Standard_B1s** | 1 | 1 GB | **~$7.59** | Dev/test, minimal workloads (dev profile) |
 | Standard_B1ms | 1 | 2 GB | ~$15.18 | Light workloads |
-| Standard_B2s | 2 | 4 GB | ~$30.37 | Balanced dev/test |
-| Standard_B2ms | 2 | 8 GB | ~$60.74 | Memory-intensive |
-| Standard_D2s_v3 | 2 | 8 GB | ~$96.36 | Production workloads |
+| Standard_B2ms | 2 | 8 GB | ~$60.74 | Memory-intensive (training profile) |
+| Standard_D2s_v3 | 2 | 8 GB | ~$96.36 | Production workloads (prod profile) |
 
-**Default Module Setting**: Standard_B1s (~$7.59/month)
+**Environment Defaults**
+- `dev`: Standard_B1s (~$7.59/month)
+- `training`: Standard_B2ms (~$60.74/month)
+- `prod`: Standard_D2s_v3 (~$96.36/month)
 
 ### Storage (per month)
 
 | Disk Type | Size | Cost | Performance |
 |-----------|------|------|-------------|
 | **Standard HDD** (LRS) | 30 GB | **~$1.54** | 500 IOPS |
+| Standard HDD (LRS) | 50 GB | ~$2.56 | 500 IOPS |
+| Standard HDD (LRS) | 100 GB | ~$5.12 | 500 IOPS |
 | Standard SSD (LRS) | 30 GB | ~$4.81 | 500 IOPS |
 | Premium SSD (LRS) | 32 GB | ~$4.93 | 120 IOPS |
 
-**Default Module Setting**: Standard HDD 30 GB (~$1.54/month)
+**Environment Defaults**
+- `dev`: Standard HDD 30 GB (~$1.54/month)
+- `training`: Standard HDD 50 GB (~$2.56/month)
+- `prod`: Standard HDD 100 GB (~$5.12/month)
 
 ### Network
 
@@ -37,35 +44,35 @@ Azure Virtual Machines incur hourly costs. Always enable auto-shutdown for dev/t
 | Inbound data transfer | Free ✅ |
 | Outbound data transfer | First 5 GB free, then $0.087/GB |
 
-**Default Module Setting**: Private IP only (free)
+**Default Module Setting**: Standard public IP attached (disable with `enable_public_ip = false`)
 
 ## Total Monthly Costs
 
-### Minimum Configuration (Default)
+### Default Training Profile (Always-On)
 ```
-VM: Standard_B1s         $7.59
-Storage: 30 GB HDD       $1.54
-Network: Private IP      $0.00
+VM: Standard_B2ms        $60.74
+Storage: 50 GB HDD        $2.56
+Public IP: Standard       $3.65
 ─────────────────────────────
-Total:                  ~$9.13/month
+Total:                  ~$66.95/month
 ```
 
-### With Public IP
+### Dev Profile (Always-On)
 ```
 VM: Standard_B1s         $7.59
 Storage: 30 GB HDD       $1.54
 Public IP: Standard      $3.65
 ─────────────────────────────
-Total:                 ~$12.78/month
+Total:                  ~$12.78/month
 ```
 
-### Balanced Dev VM
+### Prod Profile (Always-On)
 ```
-VM: Standard_B2s        $30.37
-Storage: 30 GB HDD       $1.54
-Network: Private IP      $0.00
+VM: Standard_D2s_v3      $96.36
+Storage: 100 GB HDD       $5.12
+Public IP: Standard       $3.65
 ─────────────────────────────
-Total:                 ~$31.91/month
+Total:                 ~$105.13/month
 ```
 
 ## Cost Optimization Strategies
@@ -74,19 +81,19 @@ Total:                 ~$31.91/month
 
 **Scenario**: Dev VM runs 8 hours/day, shutdown 16 hours
 - **Standard_B1s**: $7.59/month → **$2.53/month** (67% savings!)
-- **Standard_B2s**: $30.37/month → **$10.12/month** (67% savings!)
+- **Standard_B2ms**: $60.74/month → **$20.25/month** (67% savings!)
 
 ```hcl
 enable_auto_shutdown = true
-auto_shutdown_time   = "1900"  # 7 PM
+auto_shutdown_hours  = 4  # shuts down about 4 hours after apply
 ```
 
 ### 2. Use B-Series VMs
 
-B-series VMs are **burstable** and cost 60% less than D-series:
-- Standard_B2s: $30.37/month
+B-series VMs are **burstable** and cost far less than D-series:
+- Standard_B2ms: $60.74/month
 - Standard_D2s_v3: $96.36/month
-- **Savings**: $66/month (68% cheaper)
+- **Savings**: ~$35/month (36% cheaper)
 
 ### 3. Use Standard HDD Storage
 
@@ -108,12 +115,12 @@ Commit to 1 or 3 years for up to 72% savings:
 ### 6. Spot VMs (90% discount!)
 
 For interruptible workloads:
-- Standard_B2s: $30.37 → ~$3/month (90% off)
+- Standard_B2ms: $60.74 → ~$6/month (90% off)
 - ⚠️ Can be evicted with 30-second notice
 
 ## Cost Safety for Sandbox
 
-⚠️ **NOT SAFE** for always-on sandbox use (~$9/month minimum)
+⚠️ **NOT SAFE** for always-on sandbox use (training defaults ≈ $67/month)
 
 ✅ **Cost-Safe Strategies**:
 
@@ -127,10 +134,11 @@ For interruptible workloads:
    ```
 
 2. **Auto-shutdown**: Enable for automatic shutdown
-   ```hcl
-   enable_auto_shutdown = true
-   auto_shutdown_time   = "1800"  # 6 PM
-   ```
+```hcl
+enable_auto_shutdown = true
+auto_shutdown_hours  = 6
+auto_shutdown_timezone = "Eastern Standard Time"
+```
 
 3. **Destroy after use**: For true sandbox testing
    ```bash
@@ -214,7 +222,7 @@ Alternatives:
 
 | Service | Cost | Use Case |
 |---------|------|----------|
-| VM (B1s, always-on) | ~$9/month | Full control, SSH access |
+| VM (B2ms, always-on) | ~$67/month | Full control, SSH access |
 | App Service (F1) | $0/month | Web apps only |
 | Container Apps | ~$0-5/month | Containers, scale-to-zero |
 | Azure Functions | ~$0/month | Event-driven, serverless |
@@ -237,8 +245,8 @@ Alternatives:
 
 ---
 
-**Last Updated**: 2025-10-28  
-**Default Module Cost**: ~$9.13/month (always-on) ⚠️  
-**With Auto-Shutdown (8h/day)**: ~$4.07/month ✅  
-**Recommendation**: Enable auto-shutdown or manual stop/start for dev/test
+**Last Updated**: 2025-11-10  
+**Training Profile Cost (always-on)**: ~$66.95/month ⚠️  
+**Dev Profile with Auto-Shutdown (8h/day)**: ~$7.72/month ✅  
+**Recommendation**: Keep auto-shutdown enabled or deallocate when idle
 

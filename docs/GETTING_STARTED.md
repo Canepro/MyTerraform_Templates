@@ -10,6 +10,8 @@ By the end of this guide, you will have:
 - ✅ Learned basic Terraform commands
 - ✅ Spent $0.00 (all free tier resources)
 
+**Bonus**: When you're ready, our VM stacks come with Docker and Jenkins pre-installed!
+
 ## 📋 Prerequisites Checklist
 
 Before we start, make sure you have:
@@ -555,6 +557,9 @@ For learning purposes, you can:
 - [ ] SSH into your VM
 - [ ] Configure firewalls
 - [ ] Set up auto-shutdown
+- [ ] Access pre-installed Docker and Jenkins
+- [ ] Run your first Docker container
+- [ ] Set up your first Jenkins pipeline
 
 ### Month 2: Advanced Topics
 - Learn multi-cloud deployments

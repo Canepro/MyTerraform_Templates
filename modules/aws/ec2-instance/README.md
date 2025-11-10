@@ -1,370 +1,224 @@
 # AWS EC2 Instance Module
 
-A Terraform module for creating AWS EC2 instances with security best practices, cost-optimized defaults, and production-ready configurations.
+Provision a cost-conscious, sandbox-friendly EC2 instance that reuses the default VPC, enforces secure network access, and self-terminates after four hours unless overridden.
 
-## Purpose
+## Highlights
 
-Deploy EC2 instances for:
-- **Application Hosting**: Web servers, APIs, microservices
-- **Development/Testing**: Cost-effective dev environments
-- **Jump Boxes**: Secure access to private networks
-- **Build Agents**: CI/CD runners
-- **Container Hosting**: ECS or EKS worker nodes
+- ✅ Environment profiles (`dev`, `training`, `prod`) pick sensible instance types and disk sizes automatically
+- ✅ Choose between the latest Amazon Linux 2023 or Ubuntu 22.04 LTS images
+- ✅ **Docker & Jenkins installed by default** (can be disabled)
+- ✅ Uses the account's default VPC and public subnet when none are supplied
+- ✅ Managed security group with configurable `allowed_ports` (defaults: 22, 80, 8080)
+- ✅ Elastic IP enabled by default for static access
+- ✅ Auto-shutdown helper schedules a halt after 4 hours (configurable/disable-able)
+- ✅ All resources tagged with `Environment`, `Project`, and `ManagedBy=terraform`
+- ✅ IMDSv2, EBS encryption, and safe defaults baked in
 
-## Cost
+See [COST.md](./COST.md) for an in-depth breakdown and optimization tips.
 
-**Pay-as-you-go** ⚠️
-
-- **t2.micro**: ~$11/month (750 hours FREE in first 12 months) ✅
-- **t3.micro**: ~$10/month (default)
-- **t4g.nano**: ~$5/month (ARM-based, cheapest)
-- **EBS Storage**: ~$2.40/month for 30GB gp3 (Amazon Linux 2023 minimum)
-
-**Total minimum**: ~$11/month for always-on t2.micro (after free tier)
-
-**Free Tier**: 750 hours of t2.micro + 30GB EBS storage per month ✅
-
-See [COST.md](./COST.md) for detailed cost information and savings strategies.
-
-## Features
-
-- ✅ **Amazon Linux 2023** support by default
-- ✅ **IMDSv2 enforced** for security
-- ✅ **EBS encryption enabled** by default
-- ✅ **Cost-optimized** defaults (gp3 volumes, t3.micro)
-- ✅ **IAM instance profile** support
-- ✅ **CloudWatch monitoring** optional
-- ✅ **Termination protection** optional
-
-## How to Use
-
-### Basic Example (Recommended: Auto-Detect Latest AMI)
+## Quick Start
 
 ```hcl
-module "ec2_instance" {
+module "training_vm" {
   source = "../../modules/aws/ec2-instance"
 
-  name           = "my-app-server"
-  use_latest_ami = true  # Automatically use latest Amazon Linux 2023
-  instance_type  = "t3.micro"
-  subnet_id      = "subnet-12345678"
-  
-  security_group_ids = ["sg-12345678"]
-  
-  tags = {
-    environment = "dev"
-    managed_by  = "terraform"
-  }
+  name        = "training-vm-01"
+  project     = "terraform-labs"
+  environment = "training"
+  key_name    = "my-ssh-key"
+
+  allowed_cidrs = ["203.0.113.0/24"]
 }
 ```
 
-### With Specific AMI ID
+The example above:
+
+- Launches an Amazon Linux 2023 VM in the default VPC (switch to Ubuntu 22.04 with `os_distribution = "ubuntu"`).
+- Uses the `training` profile (`t3.medium`, 50GB gp3).
+- Opens ports 22/80/8080 only to `203.0.113.0/24`.
+- Schedules an automatic shutdown in four hours and assigns an Elastic IP.
+
+## Environment Profiles
+
+| Environment | Instance Type | Root Volume Size | Intended Use            |
+|-------------|---------------|------------------|-------------------------|
+| `dev`       | `t3.micro`    | 30 GB            | Free-tier friendly labs |
+| `training`  | `t3.medium`   | 50 GB            | Classroom workshops     |
+| `prod`      | `t3.large`    | 100 GB           | Stable demo workloads   |
+
+Override `instance_type` or `root_volume_size` when you need something different; keep in mind the validation rules (`>= 30 GB`).
+
+## Advanced Usage
+
+### Custom AMI and Security Groups
 
 ```hcl
-module "ec2_instance" {
+module "prod_vm" {
   source = "../../modules/aws/ec2-instance"
 
-  name         = "my-app-server"
-  ami_id       = "ami-0c55b159cbfafe1f0"  # Specific AMI ID
-  instance_type = "t3.micro"
-  subnet_id    = "subnet-12345678"
-  
-  security_group_ids = ["sg-12345678"]
-  
-  tags = {
-    environment = "dev"
-    managed_by  = "terraform"
-  }
-}
-```
+  name        = "prod-app-01"
+  project     = "customer-portal"
+  environment = "prod"
+  os_distribution = "ubuntu"
 
-### With IAM Role and User Data
+  use_latest_ami = false
+  ami_id         = "ami-0c55b159cbfafe1f0"
 
-```hcl
-module "ec2_instance" {
-  source = "../../modules/aws/ec2-instance"
+  vpc_id    = aws_vpc.shared.id
+  subnet_id = aws_subnet.shared_public.id
 
-  name           = "my-app-server"
-  use_latest_ami = true  # Automatically use latest Amazon Linux 2023
-  instance_type  = "t3.micro"
-  subnet_id      = aws_subnet.main.id
-  security_group_ids = [aws_security_group.ec2.id]
-  
-  # IAM role for S3 access
-  iam_instance_profile = aws_iam_instance_profile.ec2.name
-  
-  # Bootstrap script
-  user_data = base64encode(<<-EOF
-    #!/bin/bash
-    yum update -y
-    yum install -y docker
-    systemctl start docker
-    systemctl enable docker
-  EOF
-  )
-  
-  tags = {
-    environment = "prod"
-    role        = "web-server"
-  }
-}
-```
+  allowed_ports = [22, 443]
+  allowed_cidrs = ["198.51.100.10/32"]
 
-### With Complete VPC Stack
+  additional_security_group_ids = [aws_security_group.shared.id]
 
-```hcl
-# VPC
-module "vpc" {
-  source = "../../modules/aws/vpc"
-
-  name               = "myapp-vpc"
-  cidr_block         = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-  
-  public_subnets = [
-    {
-      name             = "public-1"
-      cidr_block       = "10.0.1.0/24"
-      availability_zone = "us-east-1a"
-    }
-  ]
-  
-  tags = {
-    environment = "prod"
-  }
-}
-
-# Security Group
-resource "aws_security_group" "web" {
-  name_prefix = "web-"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["YOUR_IP/32"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "web-sg"
-  }
-}
-
-# EC2 Instance
-module "web_server" {
-  source = "../../modules/aws/ec2-instance"
-
-  name               = "web-server"
-  ami_id             = "ami-0c55b159cbfafe1f0"
-  instance_type      = "t3.micro"
-  subnet_id          = module.vpc.public_subnet_ids["public-1"]
-  security_group_ids = [aws_security_group.web.id]
-  
-  # SSH key pair
-  key_name = "my-keypair"
-  
-  # Enable CloudWatch detailed monitoring
-  enable_detailed_monitoring = true
-  
-  # Enable termination protection for production
+  iam_instance_profile         = aws_iam_instance_profile.ec2.name
+  enable_auto_shutdown         = false
+  enable_detailed_monitoring   = true
   enable_termination_protection = true
-  
-  tags = {
-    environment = "prod"
-    role        = "web-server"
-  }
-}
-
-# Output SSH command
-output "ssh_command" {
-  value = "ssh ec2-user@${module.web_server.public_ip}"
 }
 ```
 
-### Free Tier Configuration
+### Append Custom User Data
 
 ```hcl
-module "free_tier_instance" {
+module "lab_vm" {
   source = "../../modules/aws/ec2-instance"
 
-  name           = "free-tier-server"
-  use_latest_ami = true  # Auto-detect latest Amazon Linux 2023
-  instance_type  = "t2.micro"  # Free tier eligible
-  subnet_id      = "subnet-12345678"
-  
-  # Default 30GB is free tier limit
-  # root_volume_size = 30  # Default, no need to specify
-  
-  tags = {
-    environment = "sandbox"
-  }
+  name        = "lab-tools"
+  project     = "devx"
+  environment = "dev"
+  key_name    = "lab-key"
+
+  user_data = <<-EOT
+    yum install -y git
+    echo "Welcome to the lab" > /etc/motd
+  EOT
 }
 ```
 
-### ARM-based (Cost Optimization)
+User-provided `user_data` is appended after the auto-shutdown helper. Disable the helper via `enable_auto_shutdown = false` if you need full control.
+
+## Docker & Jenkins (Default Feature)
+
+**Docker and Jenkins are installed by default** on all VMs. Docker and Jenkins are installed separately as native services (Jenkins is NOT running as a Docker container).
+
+### Access Jenkins
+
+After deployment:
+
+```bash
+# Get Jenkins URL
+terraform output jenkins_url
+
+# Get initial admin password
+ssh -i ~/.ssh/your-key.pem ubuntu@<public-ip> "sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
+```
+
+- **URL**: `http://<public-ip>:8080`
+- **Initial Admin Password**: Located at `/var/lib/jenkins/secrets/initialAdminPassword` on the VM
+- Follow the Jenkins setup wizard on first access
+
+### Disable if Not Needed
 
 ```hcl
-module "arm_instance" {
+module "minimal_vm" {
   source = "../../modules/aws/ec2-instance"
-
-  name          = "arm-server"
-  ami_id        = "ami-0c7a8b42e4b7e2e07"  # Amazon Linux 2023 ARM
-  instance_type = "t4g.nano"               # ARM, cheapest option
-  subnet_id     = "subnet-12345678"
   
-  tags = {
-    environment = "dev"
-    architecture = "arm"
-  }
+  name        = "minimal-vm"
+  project     = "demo"
+  environment = "dev"
+  key_name    = "my-key"
+  
+  install_docker  = false  # Skip Docker installation
+  install_jenkins = false  # Skip Jenkins installation
 }
 ```
+
+**Note**: Jenkins requires Docker, so disabling Docker will also skip Jenkins installation.
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|----------|
-| name | Name tag for the EC2 instance | string | - | yes |
-| use_latest_ami | Auto-detect latest Amazon Linux 2023 AMI | bool | `false` | no |
-| ami_id | AMI ID (required if use_latest_ami is false) | string | `""` | no* |
-| instance_type | EC2 instance type | string | `"t3.micro"` | no |
-| subnet_id | Subnet ID where instance will be launched | string | - | yes |
+| `name` | Name (tag) for the instance | string | n/a | ✅ |
+| `project` | Project tag value | string | n/a | ✅ |
+| `environment` | Environment profile (`dev`, `training`, `prod`) | string | `"training"` | ✅ |
+| `use_latest_ami` | Use the latest AMI for the selected `os_distribution` | bool | `true` | |
+| `ami_id` | Specific AMI to use when `use_latest_ami` is `false` | string | `null` | |
+| `os_distribution` | Operating system (`amazon-linux`, `ubuntu`) | string | `"amazon-linux"` | |
+| `instance_type` | Override instance type | string | `null` | |
+| `root_volume_size` | Override root volume size (GB) | number | `null` | |
+| `root_volume_type` | EBS volume type | string | `"gp3"` | |
+| `vpc_id` | Custom VPC ID (defaults to account default) | string | `null` | |
+| `subnet_id` | Custom subnet ID (defaults to public subnet in resolved VPC) | string | `null` | |
+| `availability_zone` | AZ hint when auto-selecting a default subnet | string | `null` | |
+| `allowed_ports` | TCP ports allowed inbound | list(number) | `[22, 80, 8080]` | |
+| `allowed_cidrs` | CIDR blocks permitted inbound | list(string) | `["0.0.0.0/0"]` | |
+| `additional_security_group_ids` | Extra security groups to attach | list(string) | `[]` | |
+| `enable_eip` | Allocate and attach an Elastic IP | bool | `true` | |
+| `key_name` | EC2 key pair name | string | `null` | |
+| `iam_instance_profile` | IAM instance profile name | string | `null` | |
+| `enable_detailed_monitoring` | Enable CloudWatch detailed monitoring | bool | `false` | |
+| `enable_auto_shutdown` | Enable the 4-hour auto shutdown helper | bool | `true` | |
+| `auto_shutdown_hours` | Hours before issuing a shutdown | number | `4` | |
+| `user_data` | Additional user data appended after the helper script | string | `null` | |
+| `enable_termination_protection` | Protect against accidental termination | bool | `false` | |
+| `install_docker` | Install Docker on the VM | bool | `true` | |
+| `install_jenkins` | Install Jenkins via Docker | bool | `true` | |
+| `tags` | Additional tags merged into all resources | map(string) | `{}` | |
 
-*Either `use_latest_ami = true` OR `ami_id` must be provided
-| security_group_ids | List of security group IDs | list(string) | `[]` | no |
-| key_name | Name of the SSH key pair | string | `null` | no |
-| root_volume_type | Root volume type | string | `"gp3"` | no |
-| root_volume_size | Root volume size in GB (min 30GB for Amazon Linux 2023) | number | `30` | no |
-| enable_detailed_monitoring | Enable detailed CloudWatch monitoring | bool | `false` | no |
-| user_data | User data script to run on launch | string | `null` | no |
-| iam_instance_profile | IAM instance profile name | string | `null` | no |
-| enable_termination_protection | Enable termination protection | bool | `false` | no |
-| tags | Tags to apply to instance and volumes | map(string) | `{}` | no |
-
-### Validation Rules
-
-- **name**: 1-255 characters
-- **ami_id**: Must match format `ami-xxxxxxxxx`
-- **root_volume_type**: Must be one of: `gp2`, `gp3`, `io1`, `io2`, `st1`, `sc1`
-- **root_volume_size**: 30-16384 GB
+> Validation snippets:
+>
+> - `root_volume_size` must be `>= 30` and `<= 16384`.
+> - `allowed_ports` must be between `1` and `65535`.
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| instance_id | ID of the EC2 instance |
-| instance_arn | ARN of the EC2 instance |
-| private_ip | Private IP address |
-| public_ip | Public IP address (if assigned) |
-| private_dns | Private DNS name |
-| public_dns | Public DNS name (if assigned) |
-| availability_zone | Availability zone |
-| instance_state | State of the instance |
+| `instance_id` | EC2 instance ID |
+| `instance_arn` | EC2 instance ARN |
+| `private_ip` | Private IP address |
+| `public_ip` | Public IP (if Elastic IP enabled) |
+| `private_dns` | Private DNS name |
+| `public_dns` | Public DNS name (if reachable) |
+| `availability_zone` | AZ where the instance runs |
+| `instance_state` | Current instance state |
+| `security_group_id` | Managed security group ID |
+| `elastic_ip` | Elastic IP address (if created) |
+| `resolved_tags` | Final tag map applied to the instance |
+| `resolved_instance_type` | Effective instance type after defaults |
+| `resolved_root_volume_size` | Effective root volume size (GB) |
+| `ssh_user` | SSH username for the VM (based on OS) |
+| `ssh_command` | Ready-to-use SSH command |
+| `docker_installed` | Whether Docker was installed |
+| `jenkins_installed` | Whether Jenkins was installed |
+| `jenkins_url` | Jenkins web interface URL |
+| `jenkins_admin_password` | Jenkins admin password (sensitive) |
 
-## Best Practices
+## Security & Cost Notes
 
-### Security
-
-1. **Use IMDSv2**: Module enforces IMDSv2 by default ✅
-2. **Encrypt volumes**: EBS encryption enabled by default ✅
-3. **Principle of least privilege**: Use IAM roles, not hardcoded credentials
-4. **Restrict SSH**: Limit security group to specific IPs
-5. **Use Systems Manager**: For remote access without SSH key exposure
-
-### Cost Optimization
-
-1. **Free Tier**: Use t2.micro for first 12 months
-2. **ARM Instances**: t4g.nano/micro are 20% cheaper
-3. **Spot Instances**: 90% savings for fault-tolerant workloads
-4. **Right-sizing**: Choose instance type based on actual needs
-5. **gp3 volumes**: Cheaper and faster than gp2
-
-### High Availability
-
-1. **Multiple AZs**: Deploy instances across availability zones
-2. **Auto Scaling**: Use ASG for dynamic capacity
-3. **Load Balancer**: Distribute traffic across instances
-4. **Health Checks**: Enable CloudWatch health checks
-
-## Security Features
-
-This module implements security best practices:
-
-- ✅ **IMDSv2 enforced**: Metadata service version 2 required
-- ✅ **EBS encryption**: All volumes encrypted at rest
-- ✅ **TLS 1.2+**: HTTPS endpoints only
-- ✅ **No default credentials**: SSH keys or IAM roles required
-- ✅ **Private by default**: No public IP unless explicitly enabled
+- Restrict `allowed_cidrs` to your corporate IP ranges whenever possible.
+- Use AWS Systems Manager Session Manager for passwordless shell access.
+- Leave `enable_auto_shutdown = true` for sandbox/training work to avoid surprise costs.
+- Detailed monitoring adds ~10% cost on small instances; keep it disabled unless needed.
 
 ## Troubleshooting
 
-### Instance won't start
-
-```bash
-# Check system logs
-aws ec2 get-console-output --instance-id i-1234567890abcdef0
-
-# Check instance state
-aws ec2 describe-instance-status --instance-ids i-1234567890abcdef0
-```
-
-### Can't SSH
-
-1. Verify security group allows port 22 from your IP
-2. Check key pair name is correct
-3. Verify instance has public IP
-4. Try connecting via Systems Manager Session Manager
-
-### High costs
-
-1. Check if detailed monitoring is enabled (disabled by default)
-2. Verify instance size matches workload
-3. Consider stopping instances when not in use
-4. Review EBS volumes for unused storage
-
-## Examples
-
-See the `examples/` directory for complete working configurations:
-- Basic web server
-- API server with IAM roles
-- Auto Scaling Group integration
-- Multi-AZ deployment
+- **No public IP?** Ensure `enable_eip = true` (default) or supply a subnet with `map_public_ip_on_launch = true`.
+- **AMI errors?** Disable `use_latest_ami` and supply a known-good `ami_id` in regions without Amazon Linux 2023.
+- **Permissions denied?** Confirm your IAM role allows `ec2:Describe*`, `ec2:RunInstances`, `ec2:AssociateAddress`, and tagging actions.
 
 ## References
 
-- [EC2 Pricing](https://aws.amazon.com/ec2/pricing/)
-- [EC2 User Guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/)
-- [AMI Finder](https://console.aws.amazon.com/ec2/v2/home#Images)
+- [Amazon EC2 Pricing](https://aws.amazon.com/ec2/pricing/)
 - [Amazon Linux 2023](https://aws.amazon.com/linux/amazon-linux-2023/)
-- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
+- [Managing Default VPCs](https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html)
+- [Instance Scheduler Alternatives](https://aws.amazon.com/instance-scheduler/)
 
 ---
 
-**Cost**: ~$10/month (t3.micro) ⚠️ | **Free Tier**: t2.micro + 30GB storage eligible ✅  
-**Last Updated**: 2025-11-02 | **Maintained by**: [@Canepro](https://github.com/Canepro)
-
+**Cost posture**: ⚠️ Pay-as-you-go (free-tier friendly in `dev`)  
+**Auto-expiry**: ✅ Shuts down after 4 hours by default  
+**Managed by**: terraform

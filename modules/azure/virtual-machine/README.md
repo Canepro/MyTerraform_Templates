@@ -1,293 +1,182 @@
 # Azure Linux Virtual Machine Module
 
-A Terraform module for creating Azure Linux Virtual Machines with cost-safe defaults, SSH-only authentication, and optional auto-shutdown.
+Provision a sandbox-friendly Azure Linux VM that mirrors the AWS EC2 interface: environment-aware sizing, configurable ingress, static public IP by default, and a 4-hour auto-shutdown helper to control costs.
 
-## Purpose
+## Highlights
 
-Deploy Linux VMs for:
-- **Development/Testing**: Cost-effective dev environments
-- **Application Hosting**: Web servers, APIs, microservices
-- **Bastion/Jump Boxes**: Secure access to private networks
-- **Build Agents**: CI/CD runners
+- ✅ Environment profiles (`dev`, `training`, `prod`) automatically set `vm_size` and OS disk size
+- ✅ Choose between Ubuntu 22.04 LTS or Azure Linux (CBL-Mariner) images
+- ✅ **Docker & Jenkins installed by default** (can be disabled)
+- ✅ Managed NSG opens ports 22/80/8080 by default (customise with `allowed_ports` / `allowed_cidrs`)
+- ✅ Standard SKU public IP enabled by default for predictable access (disable for private-only deployments)
+- ✅ Auto-shutdown schedule defaults to 4 hours after deployment
+- ✅ All resources tagged with `Environment`, `Project`, and `ManagedBy=terraform`
+- ✅ SSH-only access; passwords remain disabled
 
-## Cost
+> ℹ️ Amazon Linux images are not published in the Azure marketplace. For parity with AWS, use Ubuntu here; Amazon Linux remains exclusive to the AWS EC2 module.
 
-**Pay-as-you-go** ⚠️
+See [COST.md](./COST.md) for pricing guidance and optimisation tips.
 
-- **Standard_B1s**: ~$7.59/month (1 vCPU, 1 GB RAM) - cheapest option
-- **Standard_B2s**: ~$30.37/month (2 vCPU, 4 GB RAM)
-- **Storage**: ~$1.54/month for 30 GB Standard HDD
-
-**Total minimum**: ~$9/month for always-on B1s VM
-
-See [COST.md](./COST.md) for detailed cost information and savings strategies.
-
-## Features
-
-- ✅ **Ubuntu 22.04 LTS** by default
-- ✅ **SSH-only** authentication (no passwords)
-- ✅ **Cost-optimized** defaults (Standard_B1s, Standard_LRS storage)
-- ✅ **Auto-shutdown** schedule (optional, saves costs)
-- ✅ **Managed identity** support
-- ✅ **Public IP** optional
-
-## How to Use
-
-### Basic Example (Private IP Only)
+## Quick Start
 
 ```hcl
-module "vm" {
+module "training_vm" {
   source = "../../modules/azure/virtual-machine"
 
-  name                = "vm-myapp-dev"
-  resource_group_name = "rg-myapp-dev"
+  name                = "training-vm-01"
+  project             = "terraform-labs"
+  environment         = "training"
+  resource_group_name = "rg-shared-training"
   location            = "eastus"
-  subnet_id           = azurerm_subnet.default.id
-  
-  # Your SSH public key
-  ssh_public_key = file("~/.ssh/id_rsa.pub")
-  
-  tags = {
-    environment = "dev"
-    managed_by  = "terraform"
-  }
+  subnet_id           = azurerm_subnet.shared.id
+
+  ssh_public_key = file("~/.ssh/id_ed25519.pub")
+  allowed_cidrs  = ["203.0.113.0/24"]
 }
 ```
 
-### With Public IP and Auto-Shutdown
+The example above:
+
+- Launches an Ubuntu 22.04 VM (switch to Azure Linux with `os_distribution = "azure-linux"`)
+- Applies the `training` profile (`Standard_B2ms`, 50 GB disk)
+- Allocates a static public IP for remote access
+- Exposes ports 22/80/8080 only to `203.0.113.0/24`
+- Schedules an automatic shutdown roughly four hours after deployment
+
+## Environment Profiles
+
+| Environment | VM Size           | OS Disk | Intended Use            |
+|-------------|-------------------|---------|-------------------------|
+| `dev`       | `Standard_B1s`    | 30 GB   | Free-tier labs          |
+| `training`  | `Standard_B2ms`   | 50 GB   | Classroom workshops     |
+| `prod`      | `Standard_D2s_v3` | 100 GB  | Persistent demo setups  |
+
+Override `vm_size` or `os_disk_size_gb` as required—validation enforces disks ≥ 30 GB.
+
+## Adaptive Security Rules
 
 ```hcl
-module "vm_dev" {
-  source = "../../modules/azure/virtual-machine"
+allowed_ports = [22, 443]
+allowed_cidrs = ["198.51.100.10/32", "10.0.0.0/16"]
+```
 
-  name                = "vm-myapp-dev"
-  resource_group_name = "rg-myapp-dev"
+The module provisions a dedicated Network Security Group (NSG) and attaches it to the NIC. Outbound access stays unrestricted so package updates continue to work.
+
+## Docker & Jenkins (Default Feature)
+
+**Docker and Jenkins are installed by default** on all VMs. Docker and Jenkins are installed separately as native services (Jenkins is NOT running as a Docker container).
+
+### Access Jenkins
+
+After deployment:
+
+```bash
+# Get Jenkins URL
+terraform output jenkins_url
+
+# Get initial admin password
+ssh azureuser@<public-ip> "sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
+```
+
+- **URL**: `http://<public-ip>:8080`
+- **Initial Admin Password**: Located at `/var/lib/jenkins/secrets/initialAdminPassword` on the VM
+- Follow the Jenkins setup wizard on first access
+
+### Disable if Not Needed
+
+```hcl
+module "minimal_vm" {
+  source = "../../modules/azure/virtual-machine"
+  
+  name                = "minimal-vm"
+  project             = "demo"
+  environment         = "dev"
+  resource_group_name = "rg-demo"
   location            = "eastus"
-  subnet_id           = azurerm_subnet.default.id
+  subnet_id           = azurerm_subnet.main.id
   ssh_public_key      = file("~/.ssh/id_rsa.pub")
   
-  # Enable public IP for external access
-  enable_public_ip = true
-  
-  # Auto-shutdown at 7 PM to save costs
-  enable_auto_shutdown = true
-  auto_shutdown_time   = "1900"
-  auto_shutdown_timezone = "Eastern Standard Time"
-  
-  tags = {
-    environment = "dev"
-    auto_shutdown = "enabled"
-  }
-}
-
-# SSH access
-output "ssh_command" {
-  value = "ssh ${module.vm_dev.admin_username}@${module.vm_dev.public_ip_address}"
+  install_docker  = false  # Skip Docker installation
+  install_jenkins = false  # Skip Jenkins installation
 }
 ```
 
-### With Complete Stack
-
-```hcl
-module "naming" {
-  source = "../../modules/common/naming"
-
-  prefix      = "myapp"
-  environment = "dev"
-}
-
-module "tags" {
-  source = "../../modules/common/tags"
-
-  environment = "dev"
-  cost_center = "engineering"
-}
-
-module "resource_group" {
-  source = "../../modules/azure/resource-group"
-
-  name     = module.naming.resource_group
-  location = "eastus"
-  tags     = module.tags.tags
-}
-
-module "vnet" {
-  source = "../../modules/azure/virtual-network"
-
-  name                = module.naming.virtual_network
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
-  address_space       = ["10.0.0.0/16"]
-  
-  subnets = [
-    {
-      name             = "snet-vm"
-      address_prefixes = ["10.0.1.0/24"]
-    }
-  ]
-  
-  tags = module.tags.tags
-}
-
-module "vm" {
-  source = "../../modules/azure/virtual-machine"
-
-  name                = module.naming.virtual_machine
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
-  subnet_id           = module.vnet.subnet_ids["snet-vm"]
-  ssh_public_key      = file("~/.ssh/id_rsa.pub")
-  
-  vm_size          = "Standard_B1s"
-  enable_public_ip = true
-  
-  # Auto-shutdown for cost savings
-  enable_auto_shutdown = true
-  auto_shutdown_time   = "2000"
-  
-  tags = module.tags.tags
-}
-```
-
-### Different VM Sizes
-
-```hcl
-# Cheapest (1 vCPU, 1 GB RAM) - ~$7.59/month
-module "vm_small" {
-  source = "../../modules/azure/virtual-machine"
-  # ... other config ...
-  vm_size = "Standard_B1s"
-}
-
-# Balanced (2 vCPU, 4 GB RAM) - ~$30/month
-module "vm_medium" {
-  source = "../../modules/azure/virtual-machine"
-  # ... other config ...
-  vm_size = "Standard_B2s"
-}
-
-# Larger (2 vCPU, 8 GB RAM) - ~$60/month
-module "vm_large" {
-  source = "../../modules/azure/virtual-machine"
-  # ... other config ...
-  vm_size = "Standard_B2ms"
-}
-```
+**Note**: Jenkins requires Docker, so disabling Docker will also skip Jenkins installation.
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|----------|
-| name | VM name | string | n/a | yes |
-| resource_group_name | Resource group name | string | n/a | yes |
-| subnet_id | Subnet ID | string | n/a | yes |
-| ssh_public_key | SSH public key | string | n/a | yes |
-| location | Azure region | string | "eastus" | no |
-| vm_size | VM size | string | "Standard_B1s" | no |
-| admin_username | Admin username | string | "azureuser" | no |
-| enable_public_ip | Enable public IP | bool | false | no |
-| os_disk_storage_account_type | Storage type | string | "Standard_LRS" | no |
-| os_disk_size_gb | OS disk size | number | 30 | no |
-| enable_managed_identity | Enable managed identity | bool | false | no |
-| enable_auto_shutdown | Enable auto-shutdown | bool | false | no |
-| auto_shutdown_time | Shutdown time (HHMM) | string | "1900" | no |
-| tags | Resource tags | map(string) | {} | no |
+| `name` | VM resource name | string | n/a | ✅ |
+| `project` | Project tag value | string | n/a | ✅ |
+| `environment` | Environment profile (`dev`, `training`, `prod`) | string | `"training"` | ✅ |
+| `resource_group_name` | Resource group for the VM | string | n/a | ✅ |
+| `location` | Azure region | string | `"eastus"` | |
+| `subnet_id` | Subnet ID for NIC placement | string | n/a | ✅ |
+| `ssh_public_key` | SSH public key (OpenSSH format) | string | n/a | ✅ |
+| `vm_size` | Override VM size | string | `null` | |
+| `os_disk_size_gb` | Override OS disk size (GB) | number | `null` | |
+| `os_disk_storage_account_type` | OS disk storage tier | string | `"Standard_LRS"` | |
+| `os_distribution` | Base image (`ubuntu`, `azure-linux`) | string | `"ubuntu"` | |
+| `admin_username` | SSH admin username | string | `"azureuser"` | |
+| `allowed_ports` | TCP ports allowed inbound | list(number) | `[22, 80, 8080]` | |
+| `allowed_cidrs` | CIDR blocks allowed inbound | list(string) | `["0.0.0.0/0"]` | |
+| `enable_public_ip` | Allocate static public IP | bool | `true` | |
+| `enable_managed_identity` | Enable system-assigned identity | bool | `false` | |
+| `enable_auto_shutdown` | Turn on auto-shutdown helper | bool | `true` | |
+| `auto_shutdown_hours` | Hours before shutdown trigger | number | `4` | |
+| `auto_shutdown_timezone` | Timezone for shutdown schedule | string | `"UTC"` | |
+| `auto_shutdown_notification_enabled` | Enable email notifications | bool | `false` | |
+| `install_docker` | Install Docker on the VM | bool | `true` | |
+| `install_jenkins` | Install Jenkins via Docker | bool | `true` | |
+| `tags` | Extra tags merged into resources | map(string) | `{}` | |
+
+> Validation snippets:
+>
+> - `os_disk_size_gb` must be `>= 30` and `<= 2048`.
+> - `allowed_ports` entries must be between `1` and `65535`.
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| id | VM ID |
-| name | VM name |
-| private_ip_address | Private IP |
-| public_ip_address | Public IP (if enabled) |
-| admin_username | SSH username |
-| network_interface_id | NIC ID |
-| identity_principal_id | Managed identity principal ID (if enabled) |
+| `id` | VM resource ID |
+| `name` | VM name |
+| `private_ip_address` | Private NIC IP |
+| `public_ip_address` | Static public IP (if enabled) |
+| `admin_username` | SSH username |
+| `network_interface_id` | NIC resource ID |
+| `network_security_group_id` | Managed NSG ID |
+| `identity_principal_id` | Managed identity principal (if enabled) |
+| `resolved_tags` | Final tag map applied to resources |
+| `resolved_vm_size` | Effective VM size after defaults |
+| `resolved_os_disk_size_gb` | Effective OS disk size after defaults |
+| `docker_installed` | Whether Docker was installed |
+| `jenkins_installed` | Whether Jenkins was installed |
+| `jenkins_url` | Jenkins web interface URL |
+| `jenkins_admin_password` | Jenkins admin password (sensitive) |
 
-## SSH Access
+## OS Choices
 
-After deployment, connect via SSH:
+- `ubuntu` (default): Canonical Ubuntu 22.04 LTS, Gen2 image.
+- `azure-linux`: Microsoft CBL-Mariner 2.x (“Azure Linux”) for hardened container hosts.
 
-```bash
-# Generate SSH key if you don't have one
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa
+Amazon Linux is not provided on Azure—use Ubuntu for cross-cloud tooling while keeping Amazon Linux on AWS.
 
-# SSH to VM (private IP)
-ssh azureuser@<private-ip>
+## Auto-Shutdown Helper
 
-# SSH to VM (public IP, if enabled)
-ssh azureuser@<public-ip>
+When `enable_auto_shutdown = true`, an Azure DevTest Labs shutdown schedule is created with `daily_recurrence_time` computed as “now + `auto_shutdown_hours`.” Update or disable the schedule after deployment if you prefer a fixed daily shutdown time.
 
-# SSH with specific key
-ssh -i ~/.ssh/id_rsa azureuser@<ip-address>
-```
+## Security & Cost Notes
 
-## Auto-Shutdown
-
-Enable auto-shutdown to save costs:
-
-```hcl
-enable_auto_shutdown       = true
-auto_shutdown_time         = "1900"  # 7 PM
-auto_shutdown_timezone     = "Eastern Standard Time"
-auto_shutdown_notification_enabled = false
-```
-
-**Cost Savings**: If VM runs only 8 hours/day (shutdown 16 hours):
-- Standard_B1s: ~$7.59/month → **~$2.53/month** (67% savings)
-
-## Best Practices
-
-1. **Use auto-shutdown** - Enable for dev/test VMs
-2. **Start with B-series** - Cheapest option (Standard_B1s)
-3. **Use managed identity** - Instead of storing credentials
-4. **Private IPs only** - Use Azure Bastion or VPN for access
-5. **Standard_LRS storage** - Cheapest disk option for dev/test
-6. **Monitor costs** - Set up cost alerts
-
-## Security Features
-
-- ✅ **SSH-only** - Passwords disabled by default
-- ✅ **No public IP** by default - Deploy in private subnet
-- ✅ **Managed identity** - For Azure resource access
-- ✅ **NSG integration** - Use with network security groups
-- ✅ **Auto-update** - Ubuntu LTS with automatic security updates
-
-## Common Use Cases
-
-### Development Workstation
-
-```hcl
-vm_size              = "Standard_B2s"  # 2 vCPU, 4 GB RAM
-enable_auto_shutdown = true
-auto_shutdown_time   = "1800"  # 6 PM
-```
-
-### CI/CD Build Agent
-
-```hcl
-vm_size                 = "Standard_B2s"
-enable_managed_identity = true  # Access Azure resources
-enable_public_ip        = false # Keep private
-```
-
-### Jump Box / Bastion
-
-```hcl
-vm_size          = "Standard_B1s"  # Minimal resources needed
-enable_public_ip = true            # External access
-```
-
-## Limitations
-
-- Only Linux VMs supported (use separate module for Windows)
-- No data disk configuration (add separately if needed)
-- SSH key required (password auth disabled)
-- Auto-shutdown doesn't auto-start VMs
+- Restrict `allowed_cidrs` to corporate IP ranges; combine with Azure Bastion for zero-trust entry.
+- Disable the public IP in private networks to rely on VPN or Bastion.
+- Leave auto-shutdown enabled for training labs; pair with Azure Automation or Functions to auto-start when needed.
+- Use managed identities instead of embedding credentials on the VM.
 
 ## References
 
-- [Azure VM Pricing](https://azure.microsoft.com/en-us/pricing/details/virtual-machines/linux/)
-- [VM Sizes](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes)
-- [Ubuntu on Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/canonical.0001-com-ubuntu-server-jammy)
+- [Azure VM Pricing](https://azure.microsoft.com/pricing/details/virtual-machines/linux/)
+- [Azure VM Sizes](https://learn.microsoft.com/azure/virtual-machines/sizes)
+- [Ubuntu on Azure Marketplace](https://azuremarketplace.microsoft.com/marketplace/apps/canonical.0001-com-ubuntu-server-jammy)
+- [CBL-Mariner (Azure Linux)](https://learn.microsoft.com/azure/azure-linux/overview)

@@ -1,26 +1,72 @@
 output "vm_public_ip" {
   description = "Public IP address of the VM"
-  value       = var.enable_eip && length(aws_eip.this) > 0 ? aws_eip.this[0].public_ip : aws_instance.this.public_ip
+  value       = module.ec2_vm.public_ip
 }
 
 output "vm_private_ip" {
   description = "Private IP address of the VM"
-  value       = aws_instance.this.private_ip
-}
-
-output "ssh_command" {
-  description = "SSH command to connect to the VM"
-  value       = var.key_path != "" ? "ssh ec2-user@${var.enable_eip && length(aws_eip.this) > 0 ? aws_eip.this[0].public_ip : aws_instance.this.public_ip} -i ${var.key_path}" : "ssh ec2-user@${var.enable_eip && length(aws_eip.this) > 0 ? aws_eip.this[0].public_ip : aws_instance.this.public_ip}"
+  value       = module.ec2_vm.private_ip
 }
 
 output "instance_id" {
   description = "EC2 instance ID"
-  value       = aws_instance.this.id
+  value       = module.ec2_vm.instance_id
 }
 
-output "ami_id" {
-  description = "AMI ID used for the instance"
-  value       = data.aws_ami.amazon_linux_2023.id
+output "ssh_command" {
+  description = "SSH command to connect to the VM"
+  value       = module.ec2_vm.ssh_command
+}
+
+output "ssh_user" {
+  description = "SSH username for the VM"
+  value       = module.ec2_vm.ssh_user
+}
+
+output "elastic_ip" {
+  description = "Elastic IP address (if enabled)"
+  value       = module.ec2_vm.elastic_ip
+}
+
+output "public_dns" {
+  description = "Public DNS name"
+  value       = module.ec2_vm.public_dns
+}
+
+output "security_group_id" {
+  description = "Security group ID"
+  value       = module.ec2_vm.security_group_id
+}
+
+output "resolved_instance_type" {
+  description = "Actual instance type used (after environment defaults)"
+  value       = module.ec2_vm.resolved_instance_type
+}
+
+output "resolved_root_volume_size" {
+  description = "Actual root volume size (after environment defaults)"
+  value       = module.ec2_vm.resolved_root_volume_size
+}
+
+output "docker_installed" {
+  description = "Whether Docker is installed"
+  value       = module.ec2_vm.docker_installed
+}
+
+output "jenkins_installed" {
+  description = "Whether Jenkins is installed"
+  value       = module.ec2_vm.jenkins_installed
+}
+
+output "jenkins_url" {
+  description = "Jenkins web interface URL"
+  value       = module.ec2_vm.jenkins_url
+}
+
+output "jenkins_admin_password" {
+  description = "Jenkins admin password (use 'terraform output jenkins_admin_password' to view)"
+  value       = module.ec2_vm.jenkins_admin_password
+  sensitive   = true
 }
 
 output "destroy_command" {

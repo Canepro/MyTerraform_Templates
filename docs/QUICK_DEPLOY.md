@@ -14,10 +14,12 @@ This guide helps you:
 
 Each quick-deploy stack creates:
 - ✅ VPC/VNet with proper networking
-- ✅ Security groups/firewalls with SSH enabled
+- ✅ Security groups/firewalls with SSH enabled (ports 22, 80, 8080)
 - ✅ Public IP for internet access
 - ✅ Latest Ubuntu/Amazon Linux
 - ✅ SSH access configured and ready
+- ✅ **Docker** installed and ready to use
+- ✅ **Jenkins** installed as a native service (accessible at port 8080)
 
 ## 🚀 Azure Quick Deploy
 
@@ -37,10 +39,20 @@ az login
 terraform init
 terraform apply
 
-# 4. Connect via SSH
+# 4. Get outputs
+terraform output  # Shows VM IP, Jenkins URL, etc.
+
+# 5. Connect via SSH
 ssh azureuser@$(terraform output -raw vm_public_ip)
 
-# 5. Destroy when done
+# 6. Get Jenkins admin password (SSH to VM first)
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+# 7. Access Jenkins
+# Open http://<vm-ip>:8080 in your browser
+# Use the password from step 6 to unlock Jenkins
+
+# 8. Destroy when done
 terraform destroy
 ```
 
@@ -70,11 +82,22 @@ aws configure
 terraform init
 terraform apply
 
-# 5. Connect via SSH
+# 5. Get outputs
+terraform output  # Shows VM IP, Jenkins URL, etc.
+
+# 6. Connect via SSH
 terraform output ssh_command
 # Or copy the output command directly
 
-# 6. Destroy when done
+# 7. Get Jenkins admin password (SSH to VM first)
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+# 8. Access Jenkins
+# Jenkins URL is shown in terraform output
+# Open http://<vm-ip>:8080 in your browser
+# Use the password from step 7 to unlock Jenkins
+
+# 9. Destroy when done
 terraform destroy
 ```
 

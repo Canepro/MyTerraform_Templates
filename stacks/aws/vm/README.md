@@ -1,209 +1,310 @@
-# AWS EC2 Quick Deploy
+# AWS EC2 VM Stack
 
-Deploy a ready-to-use Amazon Linux 2023 VM in AWS in under 3 minutes with SSH access configured.
+Deploy a production-ready EC2 instance using the unified module interface with environment-driven defaults, auto-shutdown, and configurable security.
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- [Terraform](https://www.terraform.io/downloads) >= 1.5.0
-- [AWS CLI](https://aws.amazon.com/cli/)
-- AWS account with appropriate permissions
-- AWS Key Pair
-
-### Step 1: Create SSH Key Pair in AWS
-
-```bash
-# Option 1: AWS Console
-# Go to EC2 Dashboard > Key Pairs > Create Key Pair
-# Download the .pem file and set permissions
-
-# Option 2: AWS CLI
-aws ec2 create-key-pair --key-name my-aws-key --query 'KeyMaterial' --output text > ~/.ssh/my-aws-key.pem
-chmod 400 ~/.ssh/my-aws-key.pem
-```
-
-**Note**: AWS automatically injects the public key into the instance. You don't need to provide the public key content.
-
-### Step 2: Configure AWS Credentials
-
-```bash
-# Method 1: AWS CLI
-aws configure
-
-# Method 2: Environment variables
-export AWS_ACCESS_KEY_ID=your_access_key
-export AWS_SECRET_ACCESS_KEY=your_secret_key
-export AWS_DEFAULT_REGION=us-east-1
-```
-
-### Step 3: Configure Variables
+## 🎯 Quick Deploy
 
 ```bash
 cd stacks/aws/vm
+
+# Copy and edit configuration
 cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars and set your key_name
+
+# Deploy with training profile
+terraform init
+terraform apply
+
+# Or use a specific environment profile
+terraform apply -var-file=terraform.tfvars.dev
+terraform apply -var-file=terraform.tfvars.training
+terraform apply -var-file=terraform.tfvars.prod
 ```
 
-Edit `terraform.tfvars` and set your key pair name and path:
+## 🏗️ What Gets Created
+
+This stack uses the **ec2-instance module** which automatically provisions:
+
+- ✅ **Default VPC** (or custom VPC if specified)
+- ✅ **Security Group** with configurable ports (22, 80, 8080 by default)
+- ✅ **EC2 Instance** with environment-specific sizing
+- ✅ **Elastic IP** (optional, enabled by default)
+- ✅ **Auto-shutdown helper** (4-hour default for sandbox safety)
+- ✅ **Docker** (installed by default, can be disabled)
+- ✅ **Jenkins** (installed by default via Docker, can be disabled)
+
+## 📊 Environment Profiles
+
+| Environment | Instance Type | Root Volume | Auto-Shutdown | Use Case |
+|-------------|---------------|-------------|---------------|----------|
+| **dev** | t3.micro | 30GB | ✅ 4 hours | Free-tier labs, quick tests |
+| **training** | t3.medium | 50GB | ✅ 4 hours | Classroom workshops |
+| **prod** | t3.large | 100GB | ❌ Disabled | Stable demo workloads |
+
+Override defaults by setting `instance_type` or `root_volume_size` in your tfvars file.
+
+## 🐳 Software Installation (Docker & Jenkins)
+
+Docker and Jenkins are **installed by default** on all VMs. You can disable them individually if not needed.
+
+### Default Behavior
 ```hcl
-key_name = "my-aws-key"
-key_path = "~/.ssh/my-aws-key.pem"
+install_docker  = true   # Docker installed automatically
+install_jenkins = true   # Jenkins installed as native service
 ```
 
-### Step 4: Deploy
+### Access Jenkins
+After the VM is provisioned, Jenkins will be available at:
+```
+http://<vm-public-ip>:8080
+```
+
+### Get Jenkins Initial Admin Password
+```bash
+# Get the Jenkins URL
+terraform output jenkins_url
+
+# SSH to the VM and get the initial admin password
+ssh -i ~/.ssh/aws_key.pem ubuntu@<vm-ip> "sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
+
+# Or get instructions from terraform
+terraform output jenkins_admin_password
+```
+
+**Initial Admin Password**: Located at `/var/lib/jenkins/secrets/initialAdminPassword` on the VM  
+**Setup**: Follow the Jenkins setup wizard on first access
+
+### Disable Docker or Jenkins
+If you don't need these tools, set them to `false` in your `terraform.tfvars`:
+```hcl
+install_docker  = false   # Skip Docker installation
+install_jenkins = false   # Skip Jenkins installation
+```
+
+### Note
+- Jenkins requires Docker, so if you disable Docker, Jenkins won't be installed
+- Port 8080 is open by default in the security group for Jenkins access
+- Both services are configured to start automatically on boot
+
+## 💰 Cost Estimates
+
+### Development (t3.micro, 30GB)
+```
+Instance (t3.micro):     $7.50/month  (FREE first 12 months)
+Storage (30GB gp3):      $2.40/month
+Elastic IP (attached):   FREE
+───────────────────────────────────
+Total:                  ~$9.90/month (~$2.40/month with free tier)
+```
+
+### Training (t3.medium, 50GB)
+```
+Instance (t3.medium):   $30.37/month
+Storage (50GB gp3):      $4.00/month
+Elastic IP (attached):   FREE
+───────────────────────────────────
+Total:                 ~$34.37/month
+With 4-hour auto-shutdown: ~$11.46/month (67% savings!)
+```
+
+### Production (t3.large, 100GB)
+```
+Instance (t3.large):    $60.74/month
+Storage (100GB gp3):     $8.00/month
+Elastic IP (attached):   FREE
+───────────────────────────────────
+Total:                 ~$68.74/month
+```
+
+## 🚀 Usage Examples
+
+### Basic Deployment (Training Profile)
+
+```hcl
+# terraform.tfvars
+project_name = "myapp"
+environment  = "training"
+key_name     = "my-aws-key"
+```
 
 ```bash
-terraform init
-terraform plan
 terraform apply
 ```
 
-**That's it!** Your VM is ready in 2-3 minutes. The SSH command will be in the output:
+### Custom Configuration
 
+```hcl
+# terraform.tfvars
+project_name = "myapp"
+environment  = "dev"
+region       = "us-west-2"
+
+# OS selection
+os_distribution = "ubuntu"  # or "amazon-linux"
+
+# Override environment defaults
+instance_type    = "t3.small"
+root_volume_size = 40
+
+# Security
+allowed_ports = [22, 443, 8080]
+allowed_cidrs = ["203.0.113.0/24"]  # Your corporate IP
+
+# Auto-shutdown
+enable_auto_shutdown = true
+auto_shutdown_hours  = 6
 ```
-ssh ec2-user@52.168.123.45 -i ~/.ssh/my-aws-key.pem
+
+### Using Existing VPC
+
+```hcl
+# terraform.tfvars
+vpc_id    = "vpc-1234567890abcdef0"
+subnet_id = "subnet-1234567890abcdef0"
 ```
 
-## 📋 What Gets Created
+## 🔑 SSH Key Setup
 
-- ✅ VPC (10.0.0.0/16)
-- ✅ Internet Gateway
-- ✅ Public Subnet (10.0.1.0/24)
-- ✅ Route Table with Internet access
-- ✅ Security Group (SSH port 22 open)
-- ✅ Amazon Linux 2023 EC2 Instance (t3.micro)
-- ✅ Elastic IP (optional, for static IP)
+### Option 1: Import Existing Key (if you have a .pem file)
 
-## 💰 Cost
+```bash
+# Extract public key from your private key
+ssh-keygen -y -f /mnt/c/Users/i/dev/aws_key.pem > ~/.ssh/aws_key.pub
 
-- **t3.micro**: FREE (750 hours/month for first 12 months)
-- **gp3 Disk**: ~$2.50/month for 30GB
-- **EIP (if attached)**: FREE when attached to running instance
-- **Networking**: FREE
-- **Total First Year**: ~$2.50/month (within free tier)
-- **Total After Free Tier**: ~$7.50/month
+# Import to AWS
+aws ec2 import-key-pair \
+  --key-name aws_key \
+  --public-key-material fileb://~/.ssh/aws_key.pub
 
-**Free tier includes**:
-- 750 hours/month of t2.micro or t3.micro
-- 30GB gp2 storage
+# Verify import
+aws ec2 describe-key-pairs --key-name aws_key
 
-## 🔧 Configuration Options
+# Use in terraform.tfvars: key_name = "aws_key"
+```
 
-See [terraform.tfvars.example](terraform.tfvars.example) for all available options:
+### Option 2: Create New Key via AWS CLI
 
-- `project_name`: Name prefix for all resources
-- `environment`: Environment tag
-- `region`: AWS region (us-east-1 is cheapest)
-- `instance_type`: EC2 instance size
-- `key_name`: AWS key pair name
-- `key_path`: Path to your SSH private key (.pem file)
-- `root_volume_type`: Storage type (gp3 recommended)
-- `enable_eip`: Enable static public IP
+```bash
+# Create new key pair
+aws ec2 create-key-pair \
+  --key-name my-aws-key \
+  --query 'KeyMaterial' \
+  --output text > ~/.ssh/my-aws-key.pem
 
-## 🖥️ Connect to Your VM
+# Set permissions
+chmod 400 ~/.ssh/my-aws-key.pem
+
+# Use in terraform.tfvars: key_name = "my-aws-key"
+```
+
+### Option 3: AWS Console
+
+1. Go to **EC2 Dashboard** → **Key Pairs** → **Create Key Pair**
+2. Download the `.pem` file
+3. Move to safe location: `mv ~/Downloads/my-key.pem ~/.ssh/`
+4. Set permissions: `chmod 400 ~/.ssh/my-key.pem`
+5. Set `key_name = "my-key"` in terraform.tfvars
+
+### List Existing Keys
+
+```bash
+aws ec2 describe-key-pairs --query 'KeyPairs[*].KeyName' --output table
+```
+
+## 🔌 Connect to Your VM
 
 After deployment:
 
 ```bash
-# Just use the output command - it includes everything you need
+# Get SSH command from output
 terraform output ssh_command
 
-# Or get just the IP
-terraform output vm_public_ip
+# Or manually
+ssh ec2-user@$(terraform output -raw vm_public_ip)
+
+# For Ubuntu
+ssh ubuntu@$(terraform output -raw vm_public_ip)
 ```
 
-**Default username**: `ec2-user` (Amazon Linux)
+## 🛡️ Security Best Practices
 
-## 🧹 Destroy Everything
+1. **Restrict CIDR blocks** in production:
+   ```hcl
+   allowed_cidrs = ["10.0.0.0/8"]  # Corporate network only
+   ```
 
-When you're done:
+2. **Use Systems Manager** instead of SSH:
+   ```hcl
+   iam_instance_profile = "AmazonSSMManagedInstanceCore"
+   allowed_ports        = [80, 443]  # Remove SSH
+   ```
+
+3. **Enable termination protection** for prod:
+   ```hcl
+   enable_termination_protection = true
+   ```
+
+4. **Monitor costs** with AWS Budgets and Cost Explorer
+
+## 🧹 Cleanup
 
 ```bash
+# Destroy everything
 terraform destroy
+
+# Or with specific profile
+terraform destroy -var-file=terraform.tfvars.training
 ```
 
-This removes all created resources and stops all billing.
+## 📝 Variables Reference
 
-## 📊 VM Details
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `project_name` | Project identifier | `"quickvm"` | No |
+| `environment` | Environment profile | `"training"` | No |
+| `region` | AWS region | `"us-east-1"` | No |
+| `os_distribution` | OS choice (amazon-linux, ubuntu) | `"amazon-linux"` | No |
+| `instance_type` | Override environment default | `null` | No |
+| `root_volume_size` | Override environment default (GB) | `null` | No |
+| `allowed_ports` | Inbound TCP ports | `[22, 80, 8080]` | No |
+| `allowed_cidrs` | Allowed CIDR blocks | `["0.0.0.0/0"]` | No |
+| `key_name` | AWS key pair name | `null` | **Yes** |
+| `enable_eip` | Allocate Elastic IP | `true` | No |
+| `enable_auto_shutdown` | 4-hour auto-shutdown | `true` | No |
 
-| Property | Value |
-|----------|-------|
-| **OS** | Amazon Linux 2023 |
-| **Size** | t3.micro (2 vCPU, 1GB RAM) |
-| **Disk** | 30GB gp3 SSD |
-| **Network** | Public IP + VPC |
-| **SSH** | Port 22 open to the world |
+See [variables.tf](./variables.tf) for complete list.
 
-## 🔍 Troubleshooting
+## 🎓 Learn More
 
-### "Could not find key pair"
-Make sure the key pair name matches exactly what you created in AWS:
-```bash
-aws ec2 describe-key-pairs
-```
+- [Module Documentation](../../../modules/aws/ec2-instance/README.md)
+- [Cost Guide](../../../modules/aws/ec2-instance/COST.md)
+- [Beginner's Guide](../../../docs/BEGINNER_GUIDE.md)
+- [AWS Setup Guide](../../../docs/aws-setup-guide.md)
 
-### "Permission denied (publickey)"
-Use the correct username for your OS:
-- Amazon Linux: `ec2-user`
-- Ubuntu: `ubuntu`
-- RHEL: `ec2-user`
-- Debian: `admin`
-
-### "Connection refused"
-Wait 1-2 minutes for the instance to fully boot and run cloud-init.
+## 🐛 Troubleshooting
 
 ### "InvalidKeyPair.NotFound"
-The key pair must exist in the same region as your instance. Check with:
+The key pair must exist in the same region. Check with:
 ```bash
 aws ec2 describe-key-pairs --region us-east-1
 ```
 
-## 🎯 Use Cases
+### "UnauthorizedOperation"
+Your AWS credentials need EC2 permissions. Verify with:
+```bash
+aws sts get-caller-identity
+```
 
-- Development environment
-- Testing applications
-- Learning AWS infrastructure
-- Temporary compute needs
-- CI/CD build agents
-- Personal cloud services
+### Connection Refused
+Wait 1-2 minutes for instance to boot, then retry SSH.
 
-## 🔐 Security Best Practices
+### Auto-Shutdown Not Working
+The shutdown helper runs in user-data. Check logs:
+```bash
+ssh ec2-user@<ip>
+sudo journalctl -u cloud-final
+```
 
-1. **Use AWS Key Pairs**: Never share private keys
-2. **Restrict SSH**: Consider limiting source IP in security group
-3. **Enable IMDSv2**: Already enabled in this stack
-4. **Use encrypted volumes**: Already enabled
-5. **Set up CloudWatch**: Monitor instance health
+---
 
-## 📚 Next Steps
-
-- Add Auto Scaling Group for high availability
-- Deploy across multiple AZs
-- Add Application Load Balancer
-- Configure CloudWatch monitoring
-- Set up AWS Systems Manager for access without SSH
-- Use AWS Secrets Manager for credentials
-
-## 💡 Tips
-
-- **Free tier**: t3.micro is free for 750 hours/month (first year)
-- **Regions**: us-east-1 is typically cheapest
-- **Spot instances**: Save up to 90% with spot instances
-- **Always destroy**: Run `terraform destroy` when done
-- **Monitor costs**: Set up AWS billing alerts
-
-## 🌍 Multi-Region
-
-Deploy to different regions by changing `region` in `terraform.tfvars`:
-- `us-east-1` (N. Virginia) - Cheapest
-- `us-west-2` (Oregon) - Popular
-- `eu-west-1` (Ireland) - Europe
-- `ap-southeast-1` (Singapore) - Asia Pacific
-
-## 🤝 Contributing
-
-Found a bug or have a suggestion? [Open an issue](https://github.com/Canepro/MyTerraform_Templates/issues) or submit a PR.
-
-## 📄 License
-
-MIT License - Copyright (c) 2025
+**Cost-Conscious Deployment** | **Sandbox-Safe Defaults** | **Production-Ready**
