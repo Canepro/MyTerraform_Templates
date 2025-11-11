@@ -251,15 +251,14 @@ cat /mnt/c/Users/i/.ssh/id_rsa.pub
 
 **Option B: Generate New Key**
 ```bash
-# Generate RSA key (recommended)
+# Generate RSA key (REQUIRED for Azure - only RSA is supported)
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/azure_key
-
-# Or Ed25519 (modern, more secure)
-ssh-keygen -t ed25519 -f ~/.ssh/azure_key
 
 # Get the public key
 cat ~/.ssh/azure_key.pub
 ```
+
+**Important**: Azure Virtual Machines only support RSA SSH keys. Ed25519 keys are not supported.
 
 ### Deploy
 
@@ -346,7 +345,85 @@ terraform destroy -var-file=terraform.tfvars
 
 ---
 
-## 6. Terraform Best Practices
+## 6. Common Azure VM Issues
+
+### Issue: "Unsupported argument: network_security_group_id"
+
+**Cause**: This module requires Azure Provider v3.0 or higher, which uses the modern `azurerm_network_interface_security_group_association` resource.
+
+**Solution**: The issue is already fixed in this repository. If you see this error in other projects:
+- Update to Azure Provider v3.0+
+- Replace `network_security_group_id` argument in `azurerm_network_interface` with a separate `azurerm_network_interface_security_group_association` resource
+
+### Issue: "decoding admin_ssh_key.0.public_key for public key data"
+
+**Cause**: Your SSH public key is invalid, a placeholder, or not properly formatted.
+
+**Solution**:
+```bash
+# Check if you have an existing key
+ls -la ~/.ssh/
+
+# Display your public key (Ed25519)
+cat ~/.ssh/id_ed25519.pub
+
+# Or RSA key
+cat ~/.ssh/id_rsa.pub
+
+# Copy the ENTIRE output (starts with ssh-ed25519 or ssh-rsa)
+# Paste it into terraform.tfvars
+```
+
+If you don't have an RSA key, generate one:
+```bash
+# Generate RSA key (REQUIRED - Azure only supports RSA, not Ed25519)
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/azure_key
+
+# Display the public key
+cat ~/.ssh/azure_key.pub
+```
+
+**Extract public key from existing .pem file**:
+```bash
+# If you have an existing RSA .pem private key
+ssh-keygen -y -f ~/.ssh/azurekey01.pem
+
+# Copy the output (starts with ssh-rsa)
+```
+
+**Important**: In `terraform.tfvars`, paste the FULL RSA key content:
+```hcl
+# ✅ CORRECT - Full RSA key content
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDf60y+HOQwzGbrL5tzv9yZLXER3bvKZLFUO0NiJj+h4xmOkzLbuikGIj/xH+vbB9N2xf2hd2bSAkfqh0hOmi34pvoOJOPyQiGYPrwSbsn79eqldLQaovn4MWeT4QgOHx3McyFIl8XxgavBXn9um4BgJ9BLGTa2IwH8zgSEzM3LgCbvSf7d07hlt7I0jvtj9CaUqiGVi5JRHCxAFPT7+uo1NNqLeGckJXNfDD3MDNQMd1/jUCBpnPWyTetTwUMlpGDk2K7TV99aQHJkkR7ZRKiJLf75+00fFFvvDWSkjMbkVfQTWDU8KTXextAfUQ86EImyrxJh4XFUMVhEVQ9A5oMjbtzXlAr2AzGpYC2IrvhfZgzPvG9r2icnVEP2HabMD0/geOTdebmfO9qakG/wyj7fh5gJGVIghcxg+xDC7p10OgdP7Zy5bX/mP5dsjGJjHlul3vyUABrFLcT22MHAKl6TPD7Yfct3zMV2HHUU9z5/XpxOwOug+0OCwQmwZWPLPeU="
+
+# ❌ WRONG - Ed25519 key (not supported by Azure)
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDAc/c41PTKNLWr86QTUTL4Qd8KAbwtMSGXqY9wDzTCy local-wsl"
+
+# ❌ WRONG - Placeholder
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your_key_here"
+
+# ❌ WRONG - File path (Azure needs content, not path)
+ssh_public_key = "~/.ssh/id_rsa.pub"
+```
+
+### Issue: "Terraform has been successfully initialized" but plan fails
+
+**Cause**: Azure provider version mismatch or credential issues.
+
+**Solution**:
+```bash
+# Re-authenticate with Azure
+az login
+az account show
+
+# Clear Terraform cache and re-initialize
+rm -rf .terraform .terraform.lock.hcl
+terraform init
+```
+
+---
+
+## 7. Terraform Best Practices
 
 ### Use Plan Files (Recommended)
 Plan files provide a safety net by separating planning from execution:
@@ -386,7 +463,7 @@ terraform plan \
 
 ---
 
-## 7. General Tips
+## 8. General Tips
 
 - **Auto-shutdown**: Enabled by default (approx. 4 hours after apply). Override with `auto_shutdown_hours`, or disable with `enable_auto_shutdown = false`.
 - **Cost awareness**: Training profile costs roughly $34/month on AWS and $67/month on Azure if left running 24/7. Use auto-shutdown or destroy when idle.

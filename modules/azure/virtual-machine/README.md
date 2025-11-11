@@ -2,6 +2,8 @@
 
 Provision a sandbox-friendly Azure Linux VM that mirrors the AWS EC2 interface: environment-aware sizing, configurable ingress, static public IP by default, and a 4-hour auto-shutdown helper to control costs.
 
+> **Provider Compatibility**: This module requires Azure Provider v3.0 or higher. It uses the modern `azurerm_network_interface_security_group_association` resource for NSG attachment (replaces deprecated `network_security_group_id` argument).
+
 ## Highlights
 
 - ✅ Environment profiles (`dev`, `training`, `prod`) automatically set `vm_size` and OS disk size

@@ -8,6 +8,12 @@ environment  = "training"  # dev, training, or prod
 # Region
 location = "eastus"
 
+# Resource Group Configuration (optional)
+# Set use_existing_resource_group to true if you don't have permissions to create resource groups
+use_existing_resource_group  = false
+existing_resource_group_name = null  # Set this when use_existing_resource_group = true
+# Example: existing_resource_group_name = "1-f02f2411-playground-sandbox"
+
 # Operating System
 os_distribution = "ubuntu"  # ubuntu or azure-linux
 

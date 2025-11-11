@@ -593,6 +593,80 @@ Don't put these in git:
 
 Use `.gitignore` to prevent accidental commits.
 
+## 🔧 Common Issues & Solutions
+
+### Azure: "Unsupported argument: network_security_group_id"
+
+**What happened**: Azure Provider v3.0+ changed how network security groups attach to network interfaces.
+
+**Solution**: This is already fixed in this repository. We use the modern `azurerm_network_interface_security_group_association` resource.
+
+### Azure: SSH Key Decoding Error
+
+**Error**: `decoding "admin_ssh_key.0.public_key" for public key data`
+
+**Cause**: Your SSH public key in `terraform.tfvars` is a placeholder or invalid.
+
+**Fix**:
+```bash
+# Check for existing keys
+ls -la ~/.ssh/
+
+# Display your Ed25519 public key
+cat ~/.ssh/id_ed25519.pub
+
+# Or RSA public key
+cat ~/.ssh/id_rsa.pub
+
+# Copy the ENTIRE output and paste into terraform.tfvars
+```
+
+**Example valid SSH key in terraform.tfvars**:
+```hcl
+# ✅ CORRECT - RSA key (Azure only supports RSA, not Ed25519)
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDf60y+HOQwzGbrL5tzv9yZLXER3bvKZLFUO0NiJj+h4xmOkzLbuikGIj/xH+vbB9N2xf2hd2bSAkfqh0hOmi34pvoOJOPyQiGYPrwSbsn79eqldLQaovn4MWeT4QgOHx3McyFIl8XxgavBXn9um4BgJ9BLGTa2IwH8zgSEzM3LgCbvSf7d07hlt7I0jvtj9CaUqiGVi5JRHCxAFPT7+uo1NNqLeGckJXNfDD3MDNQMd1/jUCBpnPWyTetTwUMlpGDk2K7TV99aQHJkkR7ZRKiJLf75+00fFFvvDWSkjMbkVfQTWDU8KTXextAfUQ86EImyrxJh4XFUMVhEVQ9A5oMjbtzXlAr2AzGpYC2IrvhfZgzPvG9r2icnVEP2HabMD0/geOTdebmfO9qakG/wyj7fh5gJGVIghcxg+xDC7p10OgdP7Zy5bX/mP5dsjGJjHlul3vyUABrFLcT22MHAKl6TPD7Yfct3zMV2HHUU9z5/XpxOwOug+0OCwQmwZWPLPeU="
+
+# ❌ WRONG - Ed25519 key (not supported by Azure)
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDAc/c41PTKNLWr86QTUTL4Qd8KAbwtMSGXqY9wDzTCy user@host"
+
+# ❌ WRONG - Placeholder text
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your_key_here"
+```
+
+**Important**: Azure Virtual Machines only support RSA SSH keys. Generate an RSA key with:
+```bash
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/azure_key
+```
+
+### AWS: Key Pair Not Found
+
+**Error**: `The key pair 'my-key' does not exist`
+
+**Fix**:
+```bash
+# List your existing keys
+aws ec2 describe-key-pairs --query 'KeyPairs[*].KeyName' --output table
+
+# Import your existing key
+aws ec2 import-key-pair \
+  --key-name my-key \
+  --public-key-material fileb://~/.ssh/id_rsa.pub
+```
+
+### Terraform: Module Not Found
+
+**Error**: `Module not found: module.resource_group`
+
+**Fix**:
+```bash
+# Re-initialize to download modules
+terraform init
+
+# If still failing, clear cache
+rm -rf .terraform .terraform.lock.hcl
+terraform init
+```
+
 ## 📚 Additional Resources
 
 ### Official Documentation

@@ -14,8 +14,15 @@ provider "azurerm" {
   skip_provider_registration = true
 }
 
-# Resource Group
+# Data source for existing resource group (when use_existing_resource_group is true)
+data "azurerm_resource_group" "existing" {
+  count = var.use_existing_resource_group ? 1 : 0
+  name  = var.existing_resource_group_name
+}
+
+# Create new resource group (when use_existing_resource_group is false)
 resource "azurerm_resource_group" "this" {
+  count    = var.use_existing_resource_group ? 0 : 1
   name     = "rg-${var.project_name}-${var.environment}"
   location = var.location
 
@@ -26,20 +33,34 @@ resource "azurerm_resource_group" "this" {
   }
 }
 
+# Local values to reference the resource group (existing or new)
+locals {
+  resource_group_name = var.use_existing_resource_group ? data.azurerm_resource_group.existing[0].name : azurerm_resource_group.this[0].name
+  resource_group_location = var.use_existing_resource_group ? data.azurerm_resource_group.existing[0].location : azurerm_resource_group.this[0].location
+  resource_group_tags = var.use_existing_resource_group ? data.azurerm_resource_group.existing[0].tags : azurerm_resource_group.this[0].tags
+}
+
 # Virtual Network
 resource "azurerm_virtual_network" "this" {
   name                = "vnet-${var.project_name}"
-  resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
+  resource_group_name = local.resource_group_name
+  location            = local.resource_group_location
   address_space       = ["10.0.0.0/16"]
 
-  tags = azurerm_resource_group.this.tags
+  tags = merge(
+    {
+      Environment = var.environment
+      Project     = var.project_name
+      ManagedBy   = "terraform"
+    },
+    var.tags
+  )
 }
 
 # Subnet
 resource "azurerm_subnet" "this" {
   name                 = "snet-vm"
-  resource_group_name  = azurerm_resource_group.this.name
+  resource_group_name  = local.resource_group_name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.1.0/24"]
 }
@@ -51,8 +72,8 @@ module "azure_vm" {
   name                = "${var.project_name}-vm"
   project             = var.project_name
   environment         = var.environment
-  resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
+  resource_group_name = local.resource_group_name
+  location            = local.resource_group_location
   subnet_id           = azurerm_subnet.this.id
 
   # OS selection

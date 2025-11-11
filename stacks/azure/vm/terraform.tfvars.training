@@ -1,0 +1,39 @@
+# Training Environment Profile
+# Usage: terraform apply -var-file=terraform.tfvars.training
+
+project_name = "quickvm"
+environment  = "training"
+location     = "westus"  # Must match existing resource group location
+
+# Resource Group Configuration
+use_existing_resource_group    = true
+existing_resource_group_name   = "1-f02f2411-playground-sandbox"
+
+# OS
+os_distribution = "ubuntu"
+
+# Sizing (uses training profile defaults: Standard_B2ms, 50GB)
+vm_size        = null
+os_disk_size_gb = null
+
+# Security
+allowed_ports = [22, 80, 8080]
+allowed_cidrs = ["0.0.0.0/0"]
+
+# SSH - REPLACE WITH YOUR PUBLIC KEY
+admin_username = "azureuser"
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDf60y+HOQwzGbrL5tzv9yZLXER3bvKZLFUO0NiJj+h4xmOkzLbuikGIj/xH+vbB9N2xf2hd2bSAkfqh0hOmi34pvoOJOPyQiGYPrwSbsn79eqldLQaovn4MWeT4QgOHx3McyFIl8XxgavBXn9um4BgJ9BLGTa2IwH8zgSEzM3LgCbvSf7d07hlt7I0jvtj9CaUqiGVi5JRHCxAFPT7+uo1NNqLeGckJXNfDD3MDNQMd1/jUCBpnPWyTetTwUMlpGDk2K7TV99aQHJkkR7ZRKiJLf75+00fFFvvDWSkjMbkVfQTWDU8KTXextAfUQ86EImyrxJh4XFUMVhEVQ9A5oMjbtzXlAr2AzGpYC2IrvhfZgzPvG9r2icnVEP2HabMD0/geOTdebmfO9qakG/wyj7fh5gJGVIghcxg+xDC7p10OgdP7Zy5bX/mP5dsjGJjHlul3vyUABrFLcT22MHAKl6TPD7Yfct3zMV2HHUU9z5/XpxOwOug+0OCwQmwZWPLPeU="
+
+# Static IP
+enable_public_ip = true
+
+# Auto-shutdown after 4 hours
+enable_auto_shutdown = true
+auto_shutdown_hours  = 4
+auto_shutdown_timezone = "UTC"
+
+tags = {
+  CostCenter = "training"
+  Owner      = "training-team"
+}
+

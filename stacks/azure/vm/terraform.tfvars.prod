@@ -1,0 +1,42 @@
+# Production Environment Profile
+# Usage: terraform apply -var-file=terraform.tfvars.prod
+
+project_name = "quickvm"
+environment  = "prod"
+location     = "eastus"
+
+# Resource Group Configuration
+# Set to true and specify existing RG name if you don't have create permissions
+use_existing_resource_group  = false
+existing_resource_group_name = null
+
+# OS
+os_distribution = "ubuntu"
+
+# Sizing (uses prod profile defaults: Standard_D2s_v3, 100GB)
+vm_size        = null
+os_disk_size_gb = null
+
+# Security - RESTRICT IN PRODUCTION
+allowed_ports = [22, 80, 8080]
+allowed_cidrs = ["10.0.0.0/8"]  # Replace with your corporate CIDR
+
+# SSH - REPLACE WITH YOUR PUBLIC KEY
+admin_username = "azureuser"
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your_key_here"
+
+# Static IP
+enable_public_ip = true
+
+# Disable auto-shutdown for production
+enable_auto_shutdown = false
+
+# Enable managed identity for Azure resource access
+enable_managed_identity = true
+
+tags = {
+  CostCenter = "production"
+  Owner      = "ops-team"
+  Backup     = "daily"
+}
+

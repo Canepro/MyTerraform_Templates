@@ -203,9 +203,12 @@ resource "azurerm_network_interface" "this" {
     public_ip_address_id          = var.enable_public_ip ? azurerm_public_ip.this[0].id : null
   }
 
-  network_security_group_id = azurerm_network_security_group.this.id
-
   tags = local.baseline_tags
+}
+
+resource "azurerm_network_interface_security_group_association" "this" {
+  network_interface_id      = azurerm_network_interface.this.id
+  network_security_group_id = azurerm_network_security_group.this.id
 }
 
 resource "azurerm_linux_virtual_machine" "this" {

@@ -1,0 +1,40 @@
+# Development Environment Profile
+# Usage: terraform apply -var-file=terraform.tfvars.dev
+
+project_name = "quickvm"
+environment  = "dev"
+location     = "eastus"
+
+# Resource Group Configuration
+# Set to true and specify existing RG name if you don't have create permissions
+use_existing_resource_group  = false
+existing_resource_group_name = null
+
+# OS
+os_distribution = "ubuntu"
+
+# Sizing (uses dev profile defaults: Standard_B1s, 30GB)
+vm_size        = null
+os_disk_size_gb = null
+
+# Security
+allowed_ports = [22, 80, 8080]
+allowed_cidrs = ["0.0.0.0/0"]
+
+# SSH - REPLACE WITH YOUR PUBLIC KEY
+admin_username = "azureuser"
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your_key_here"
+
+# Static IP
+enable_public_ip = true
+
+# Auto-shutdown after 4 hours
+enable_auto_shutdown = true
+auto_shutdown_hours  = 4
+auto_shutdown_timezone = "UTC"
+
+tags = {
+  CostCenter = "engineering"
+  Owner      = "dev-team"
+}
+

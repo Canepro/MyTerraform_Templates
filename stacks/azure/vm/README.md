@@ -21,11 +21,33 @@ terraform apply -var-file=terraform.tfvars.training
 terraform apply -var-file=terraform.tfvars.prod
 ```
 
+### 🔐 Using an Existing Resource Group
+
+If you don't have permissions to create resource groups (common in enterprise/training environments):
+
+```bash
+# List available resource groups
+chmod +x list_resource_groups.sh
+./list_resource_groups.sh
+
+# Or manually:
+az group list --query "[].{Name:name, Location:location}" --output table
+
+# Edit terraform.tfvars and set:
+# use_existing_resource_group  = true
+# existing_resource_group_name = "1-f02f2411-playground-sandbox"
+# location                     = "westus"  # Must match RG location
+
+# Then deploy
+terraform init
+terraform apply
+```
+
 ## 🏗️ What Gets Created
 
 This stack provisions:
 
-- ✅ **Resource Group** for logical grouping
+- ✅ **Resource Group** for logical grouping (or uses existing one)
 - ✅ **Virtual Network** (10.0.0.0/16)
 - ✅ **Subnet** (10.0.1.0/24)
 - ✅ **Network Security Group** with configurable ports (22, 80, 8080 by default)
@@ -34,6 +56,8 @@ This stack provisions:
 - ✅ **Auto-shutdown schedule** (4-hour default for sandbox safety)
 - ✅ **Docker** (installed by default, can be disabled)
 - ✅ **Jenkins** (installed by default via Docker, can be disabled)
+
+**Note**: If you don't have permissions to create resource groups, you can use an existing one. See [Using an Existing Resource Group](#-using-an-existing-resource-group) above.
 
 ## 📊 Environment Profiles
 
@@ -193,15 +217,14 @@ cat /mnt/c/Users/i/.ssh/id_rsa.pub
 ### Option 2: Generate New Key
 
 ```bash
-# RSA (recommended for compatibility)
+# RSA (REQUIRED - Azure only supports RSA, not Ed25519)
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/azure_key
-
-# Or Ed25519 (modern, more secure)
-ssh-keygen -t ed25519 -f ~/.ssh/azure_key
 
 # Get the public key
 cat ~/.ssh/azure_key.pub
 ```
+
+**Important**: Azure Virtual Machines only support RSA SSH keys. Ed25519 and ECDSA keys are not supported.
 
 ### Add to terraform.tfvars
 
@@ -267,15 +290,19 @@ az vm deallocate --resource-group rg-quickvm-training --name quickvm-vm
 | `project_name` | Project identifier | `"quickvm"` | No |
 | `environment` | Environment profile | `"training"` | No |
 | `location` | Azure region | `"eastus"` | No |
+| `use_existing_resource_group` | Use existing RG instead of creating | `false` | No |
+| `existing_resource_group_name` | Name of existing RG to use | `null` | If use_existing=true |
 | `os_distribution` | OS choice (ubuntu, azure-linux) | `"ubuntu"` | No |
 | `vm_size` | Override environment default | `null` | No |
 | `os_disk_size_gb` | Override environment default (GB) | `null` | No |
 | `allowed_ports` | Inbound TCP ports | `[22, 80, 8080]` | No |
 | `allowed_cidrs` | Allowed CIDR blocks | `["0.0.0.0/0"]` | No |
 | `admin_username` | SSH username | `"azureuser"` | No |
-| `ssh_public_key` | SSH public key content | - | **Yes** |
+| `ssh_public_key` | SSH public key content (RSA only) | - | **Yes** |
 | `enable_public_ip` | Allocate public IP | `true` | No |
 | `enable_auto_shutdown` | 4-hour auto-shutdown | `true` | No |
+| `install_docker` | Install Docker | `true` | No |
+| `install_jenkins` | Install Jenkins | `true` | No |
 
 See [variables.tf](./variables.tf) for complete list.
 
@@ -295,6 +322,23 @@ az login
 az account show
 ```
 
+### "AuthorizationFailed" - No Permission to Create Resource Group
+**Error**: `The client does not have authorization to perform action 'Microsoft.Resources/subscriptions/resourcegroups/read'`
+
+**Solution**: Use an existing resource group instead:
+```bash
+# List available resource groups
+./list_resource_groups.sh
+
+# Or manually:
+az group list --query "[].{Name:name, Location:location}" --output table
+
+# Update terraform.tfvars:
+use_existing_resource_group  = true
+existing_resource_group_name = "1-f02f2411-playground-sandbox"
+location                     = "westus"  # Must match RG location
+```
+
 ### "The subscription is not registered to use namespace"
 Register required providers:
 ```bash
@@ -306,10 +350,23 @@ az provider register --namespace Microsoft.Network
 Wait 2-3 minutes for VM to boot and cloud-init to complete.
 
 ### "SSH key validation failed"
-Ensure your public key starts with `ssh-rsa`, `ssh-ed25519`, or `ecdsa-`:
+Ensure your public key starts with `ssh-rsa`:
 ```bash
 cat ~/.ssh/id_rsa.pub | head -c 50
 ```
+
+**Important**: Azure VMs only support RSA keys. If you see `the provided ssh-ed25519 SSH key is not supported`, you need to use an RSA key instead:
+```bash
+# Generate new RSA key
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/azure_key
+
+# Or extract from existing .pem file
+ssh-keygen -y -f ~/.ssh/azurekey01.pem
+
+# Copy the output and paste into terraform.tfvars
+```
+
+If you see `decoding "admin_ssh_key.0.public_key" for public key data`, your SSH key might be invalid or a placeholder. Replace it with your actual RSA public key.
 
 ### Auto-Shutdown Not Triggering
 The shutdown schedule uses "current time + hours". Check the schedule in Azure Portal:

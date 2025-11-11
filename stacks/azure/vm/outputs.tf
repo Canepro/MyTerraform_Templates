@@ -20,7 +20,7 @@ output "ssh_command" {
 
 output "resource_group_name" {
   description = "Resource group name"
-  value       = azurerm_resource_group.this.name
+  value       = local.resource_group_name
 }
 
 output "network_security_group_id" {

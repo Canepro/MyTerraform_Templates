@@ -26,6 +26,18 @@ variable "location" {
   default     = "eastus"
 }
 
+variable "use_existing_resource_group" {
+  description = "Use an existing resource group instead of creating a new one"
+  type        = bool
+  default     = false
+}
+
+variable "existing_resource_group_name" {
+  description = "Name of existing resource group to use (required if use_existing_resource_group is true)"
+  type        = string
+  default     = null
+}
+
 variable "os_distribution" {
   description = "Operating system (ubuntu or azure-linux)"
   type        = string
