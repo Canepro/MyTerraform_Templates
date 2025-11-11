@@ -1,0 +1,39 @@
+# Training Environment Profile
+# Usage: terraform apply -var-file=terraform.tfvars.training
+
+project_name = "devops-training"  # Use hyphens, not underscores
+environment  = "training"
+region       = "us-east-1"
+
+# OS
+os_distribution = "ubuntu"
+use_latest_ami  = true
+
+# Sizing (uses training profile defaults: t3.medium, 50GB)
+instance_type    = null
+root_volume_size = null
+
+# Networking (uses default VPC)
+vpc_id    = null
+subnet_id = null
+
+# Security
+allowed_ports = [22, 80, 443, 8080]  # Fixed: 443 not 442
+allowed_cidrs = ["0.0.0.0/0"]
+
+# SSH - Key location: C:\Users\i\dev\aws_key.pem
+# Imported to AWS as: aws_key
+key_name = "aws_key"
+
+# Static IP
+enable_eip = true
+
+# Auto-shutdown after 4 hours
+enable_auto_shutdown = true
+auto_shutdown_hours  = 4
+
+tags = {
+  CostCenter = "training"
+  Owner      = "devops-team"
+}
+

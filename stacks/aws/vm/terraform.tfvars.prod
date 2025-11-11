@@ -1,0 +1,42 @@
+# Production Environment Profile
+# Usage: terraform apply -var-file=terraform.tfvars.prod
+
+project_name = "quickvm"
+environment  = "prod"
+region       = "us-east-1"
+
+# OS
+os_distribution = "amazon-linux"
+use_latest_ami  = true
+
+# Sizing (uses prod profile defaults: t3.large, 100GB)
+instance_type    = null
+root_volume_size = null
+
+# Networking (uses default VPC)
+vpc_id    = null
+subnet_id = null
+
+# Security - RESTRICT IN PRODUCTION
+allowed_ports = [22, 80, 8080]
+allowed_cidrs = ["10.0.0.0/8"]  # Replace with your corporate CIDR
+
+# SSH - REPLACE WITH YOUR KEY
+key_name = "my-aws-key"
+
+# Static IP
+enable_eip = true
+
+# Disable auto-shutdown for production
+enable_auto_shutdown = false
+
+# Enable production safeguards
+enable_detailed_monitoring    = true
+enable_termination_protection = true
+
+tags = {
+  CostCenter = "production"
+  Owner      = "ops-team"
+  Backup     = "daily"
+}
+

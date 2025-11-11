@@ -1,0 +1,38 @@
+# Development Environment Profile
+# Usage: terraform apply -var-file=terraform.tfvars.dev
+
+project_name = "quickvm"
+environment  = "dev"
+region       = "us-east-1"
+
+# OS
+os_distribution = "amazon-linux"
+use_latest_ami  = true
+
+# Sizing (uses dev profile defaults: t3.micro, 30GB)
+instance_type    = null
+root_volume_size = null
+
+# Networking (uses default VPC)
+vpc_id    = null
+subnet_id = null
+
+# Security
+allowed_ports = [22, 80, 8080]
+allowed_cidrs = ["0.0.0.0/0"]
+
+# SSH - REPLACE WITH YOUR KEY
+key_name = "my-aws-key"
+
+# Static IP
+enable_eip = true
+
+# Auto-shutdown after 4 hours
+enable_auto_shutdown = true
+auto_shutdown_hours  = 4
+
+tags = {
+  CostCenter = "engineering"
+  Owner      = "dev-team"
+}
+
