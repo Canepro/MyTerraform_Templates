@@ -1,0 +1,42 @@
+# ============================================
+# US West 2 Region VPC Configuration
+# ============================================
+aws_region   = "us-west-2"
+environment  = "dev"
+project_name = "my-project"
+
+# VPC Configuration - Different CIDR from us-east-1
+vpc_cidr           = "10.1.0.0/16"  # us-east-1 uses 10.0.0.0/16
+availability_zones = ["us-west-2a", "us-west-2b"]
+
+# Public Subnets
+public_subnet_cidrs = [
+  "10.1.1.0/24",  # us-west-2a
+  "10.1.2.0/24"   # us-west-2b
+]
+
+# Private Subnets
+private_subnet_cidrs = [
+  "10.1.11.0/24", # us-west-2a
+  "10.1.12.0/24"  # us-west-2b
+]
+
+# NAT Gateway
+enable_nat_gateway = true
+single_nat_gateway = true  # Set to false for HA
+
+# VPC Endpoints
+enable_s3_endpoint = true
+
+# VPC Flow Logs
+enable_flow_logs         = true
+flow_logs_retention_days = 7
+flow_logs_traffic_type   = "ALL"
+
+# Additional Tags
+tags = {
+  Team        = "DevOps"
+  CostCenter  = "Engineering"
+  Application = "Infrastructure"
+}
+

@@ -1,0 +1,42 @@
+# ============================================
+# Example: Development Environment
+# ============================================
+aws_region   = "us-east-1"
+environment  = "dev"
+project_name = "my-project"
+
+# VPC Configuration
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# Public Subnets (for load balancers, NAT gateways, bastion hosts)
+public_subnet_cidrs = [
+  "10.0.1.0/24",  # us-east-1a
+  "10.0.2.0/24"   # us-east-1b
+]
+
+# Private Subnets (for application servers, databases)
+private_subnet_cidrs = [
+  "10.0.11.0/24", # us-east-1a
+  "10.0.12.0/24"  # us-east-1b
+]
+
+# NAT Gateway (enables private subnets to access internet)
+enable_nat_gateway = true
+single_nat_gateway = true  # Set to false for HA (higher cost)
+
+# VPC Endpoints (reduce data transfer costs)
+enable_s3_endpoint = true
+
+# VPC Flow Logs (network traffic monitoring)
+enable_flow_logs         = true
+flow_logs_retention_days = 7
+flow_logs_traffic_type   = "ALL"
+
+# Additional Tags
+tags = {
+  Team        = "DevOps"
+  CostCenter  = "Engineering"
+  Application = "Infrastructure"
+}
+
